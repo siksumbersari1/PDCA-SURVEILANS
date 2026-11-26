@@ -1,0 +1,979 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>PDCA Program Puskesmas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: sticky app bar + tab nav, content in a 1180px column; dashboard = KPI row, chart+reminder grid, heatmap, PKP bullets.
+   Palette: ink-teal brand, four PDCA phase hues (indigo, teal, amber, rose), reserved status greens/ambers/reds. */
+:root{
+  --bg:#F2F6F7; --surface:#FFFFFF; --surface2:#E9F0F2; --ink:#10252B; --ink2:#46626C; --line:#D3DFE3;
+  --brand:#0B6E6A; --brand-ink:#FFFFFF; --brand-soft:#DCEFED;
+  --p:#4B5BD6; --d:#0D8F86; --c:#B97800; --a:#C2406A;
+  --ok:#1D8458; --warn:#B07000; --bad:#C23A3A; --na:#6E858E;
+  --shadow:0 1px 2px rgba(16,37,43,.06),0 4px 14px rgba(16,37,43,.05);
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B1619; --surface:#13242A; --surface2:#1A2F36; --ink:#E6F1F3; --ink2:#9DB6BE; --line:#27414A;
+  --brand:#3CC4BB; --brand-ink:#062B29; --brand-soft:#12403F;
+  --p:#8E9BFF; --d:#3CC4BB; --c:#F0B03A; --a:#F07C9F;
+  --ok:#4CC38A; --warn:#F0B03A; --bad:#F27A7A; --na:#8EA3AB;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1619; --surface:#13242A; --surface2:#1A2F36; --ink:#E6F1F3; --ink2:#9DB6BE; --line:#27414A;
+  --brand:#3CC4BB; --brand-ink:#062B29; --brand-soft:#12403F;
+  --p:#8E9BFF; --d:#3CC4BB; --c:#F0B03A; --a:#F07C9F;
+  --ok:#4CC38A; --warn:#F0B03A; --bad:#F27A7A; --na:#8EA3AB;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.25); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto}
+h1,h2,h3{margin:0;text-wrap:balance;letter-spacing:-.01em}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+
+/* app bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--surface);margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line)}
+.bar-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:10px 0;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 260px}
+.brand svg{flex:none}
+.brand h1{font-size:17px;font-weight:800;line-height:1.15}
+.brand small{display:block;color:var(--ink2);font-size:12px;font-weight:500}
+.chip-save{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink2);padding:5px 10px;border-radius:99px;background:var(--surface2)}
+.chip-save i{width:8px;height:8px;border-radius:50%;background:var(--ok);display:block}
+.chip-save.busy i{background:var(--warn);animation:pulse 1s infinite}
+.chip-save.err i{background:var(--bad)}
+.chip-save.loc i{background:var(--na)}
+@keyframes pulse{50%{opacity:.3}}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;width:36px;height:36px;display:grid;place-items:center}
+.iconbtn:hover{background:var(--surface2)}
+.nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:0;max-width:1180px;margin:0 auto}
+.nav::-webkit-scrollbar{display:none}
+.nav button{border:0;background:none;padding:10px 14px;font-weight:600;color:var(--ink2);border-bottom:3px solid transparent;white-space:nowrap;display:flex;gap:8px;align-items:center}
+.nav button:hover{color:var(--ink)}
+.nav button[aria-current=page]{color:var(--brand);border-bottom-color:var(--brand)}
+main{max-width:1180px;margin:0 auto;padding-top:20px;display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+.pg{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;min-width:0}
+.grid2>*,.grid4>*{min-width:0}
+
+/* surfaces */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:15px;font-weight:700;margin-bottom:2px}
+.card .sub{color:var(--ink2);font-size:12.5px;margin-bottom:14px}
+.head{display:flex;gap:12px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.head h2.big{font-size:22px;font-weight:800}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media(max-width:980px){.grid2{grid-template-columns:minmax(0,1fr)}.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.grid4{grid-template-columns:minmax(0,1fr)}}
+
+/* buttons */
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:10px;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn:hover{background:var(--surface2)}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:8px}
+.btn.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* month strip */
+.months{display:grid;grid-template-columns:repeat(12,minmax(54px,1fr));gap:6px;overflow-x:auto;padding:2px 2px 6px}
+.mbtn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 4px 6px;display:grid;justify-items:center;gap:4px;font-weight:600;font-size:12px;position:relative;min-width:54px}
+.mbtn:hover{border-color:var(--brand)}
+.mbtn[aria-pressed=true]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.mbtn.cur::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--a)}
+.ring{display:block}
+.ring .t{stroke:var(--line)}.ring .v{stroke:var(--brand)}
+.mbtn[aria-pressed=true] .ring .t{stroke:rgba(255,255,255,.3)}
+.mbtn[aria-pressed=true] .ring .v{stroke:var(--brand-ink)}
+
+/* PDCA stepper */
+.steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+@media(max-width:760px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.step{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;text-align:left;display:flex;gap:10px;align-items:center;min-width:0}
+.step:hover{border-color:var(--ph)}
+.step[aria-selected=true]{border-color:var(--ph);box-shadow:inset 0 0 0 1px var(--ph);background:color-mix(in srgb,var(--ph) 9%,var(--surface))}
+.step .l{flex:none;width:30px;height:30px;border-radius:9px;background:var(--ph);color:#fff;font-weight:800;display:grid;place-items:center}
+:root[data-theme=dark] .step .l,:root:not([data-theme=light]) .step .l{color:#0B1619}
+.step b{display:block;font-size:13px;line-height:1.2}
+.step span{font-size:11.5px;color:var(--ink2)}
+.step .ck{margin-left:auto;flex:none;color:var(--ok)}
+.sp{--ph:var(--p)}.sd{--ph:var(--d)}.sc{--ph:var(--c)}.sa{--ph:var(--a)}
+
+/* KPI */
+.kpi{display:grid;gap:4px}
+.kpi .k{font-size:12px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em}
+.kpi .v{font-size:34px;font-weight:800;line-height:1.05;letter-spacing:-.02em}
+.kpi .v small{font-size:16px;font-weight:700;color:var(--ink2)}
+.kpi .s{font-size:12.5px;color:var(--ink2)}
+.meter{height:6px;border-radius:9px;background:var(--surface2);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;border-radius:9px;background:var(--brand)}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;white-space:nowrap;background:color-mix(in srgb,var(--cc) 15%,var(--surface));color:var(--cc);border:1px solid color-mix(in srgb,var(--cc) 35%,var(--surface))}
+.ok{--cc:var(--ok)}.part{--cc:var(--warn)}.belum,.bad{--cc:var(--bad)}.na,.kosong{--cc:var(--na)}.warn{--cc:var(--warn)}
+.pill.ok,.pill.part,.pill.belum,.pill.bad,.pill.na,.pill.kosong,.pill.warn{color:var(--cc)}
+
+/* charts */
+svg text{font-family:var(--font)}
+.axis{fill:var(--ink2);font-size:11px}
+.gridl{stroke:var(--line);stroke-width:1}
+[data-tip]{cursor:pointer}
+#tip{position:fixed;z-index:80;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;max-width:260px;opacity:0;transition:opacity .08s}
+#tip.on{opacity:1}
+.heat{display:grid;grid-template-columns:minmax(150px,1.2fr) repeat(12,minmax(26px,1fr));gap:4px;align-items:center;overflow-x:auto;min-width:0}
+.heatw{overflow-x:auto}
+.heat .rl{font-size:12.5px;font-weight:600;padding-right:8px;line-height:1.25}
+.heat .ch{font-size:11px;font-weight:700;color:var(--ink2);text-align:center}
+.hc{height:30px;border-radius:7px;border:1px solid transparent;display:grid;place-items:center;font-size:13px;font-weight:800;min-width:26px;padding:0;background:var(--surface2);color:var(--na)}
+.hc.ok{background:color-mix(in srgb,var(--ok) 22%,var(--surface));color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--surface))}
+.hc.part{background:color-mix(in srgb,var(--warn) 22%,var(--surface));color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--surface))}
+.hc.belum{background:color-mix(in srgb,var(--bad) 20%,var(--surface));color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--surface))}
+.hc.na{background:var(--surface2);color:var(--na)}
+.hc.plan{background:transparent;border:1.5px dashed var(--na);color:var(--na)}
+.hc.none{background:transparent;color:var(--line);font-weight:400}
+.hc.sel{outline:2px solid var(--brand);outline-offset:1px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .hc{width:20px;height:20px;min-width:20px;font-size:11px;border-radius:5px}
+
+/* bullet */
+.ind{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:6px 18px;padding:14px 0;border-top:1px solid var(--line)}
+.ind:first-of-type{border-top:0;padding-top:0}
+@media(max-width:640px){.ind{grid-template-columns:minmax(0,1fr)}}
+.ind .t{font-weight:700;font-size:13.5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.bullet{position:relative;height:14px;background:var(--surface2);border-radius:99px;margin:12px 0 6px}
+.bullet .f{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--brand)}
+.bullet .f.bad{background:var(--bad)}
+.bullet .m{position:absolute;top:-5px;bottom:-5px;width:3px;border-radius:2px;background:var(--ink)}
+.bullet .e{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink2);opacity:.55}
+.ind .d{font-size:12px;color:var(--ink2);display:flex;gap:14px;flex-wrap:wrap}
+.ind .d b{color:var(--ink)}
+
+/* lists */
+.rem{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.rem li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--surface2);font-size:13px}
+.rem li button{all:unset;cursor:pointer;display:flex;gap:10px;align-items:flex-start;width:100%}
+.rem li:hover{background:color-mix(in srgb,var(--brand) 10%,var(--surface2))}
+.dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:6px;background:var(--cc)}
+.empty{padding:22px;border:1.5px dashed var(--line);border-radius:12px;text-align:center;color:var(--ink2)}
+.empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:4px}
+
+/* forms */
+.fgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media(max-width:860px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.fgrid{grid-template-columns:minmax(0,1fr)}}
+.fgrid .s2{grid-column:span 2}.fgrid .s4{grid-column:1/-1}
+@media(max-width:520px){.fgrid .s2{grid-column:auto}}
+label.f{display:grid;gap:4px;font-size:11.5px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em;min-width:0}
+label.f>span.h{text-transform:none;letter-spacing:0;font-weight:500}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 10px;font-size:13.5px;color:var(--ink);text-transform:none;letter-spacing:0;font-weight:500;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--brand) 55%,transparent);outline-offset:0;border-color:var(--brand)}
+textarea{resize:vertical;min-height:62px}
+.rowcard{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.rowcard+.rowcard{margin-top:10px}
+.rowcard>summary{list-style:none;cursor:pointer;display:flex;gap:12px;align-items:center;padding:12px 14px}
+.rowcard>summary::-webkit-details-marker{display:none}
+.rowcard>summary .n{flex:none;width:26px;height:26px;border-radius:8px;background:var(--surface2);display:grid;place-items:center;font-weight:800;font-size:12px}
+.rowcard>summary .tt{font-weight:700;min-width:0;flex:1}
+.rowcard>summary .tt small{display:block;color:var(--ink2);font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rowcard>summary .chev{transition:transform .15s;color:var(--ink2)}
+.rowcard[open]>summary .chev{transform:rotate(90deg)}
+.rowcard .body{padding:4px 14px 16px;border-top:1px solid var(--line);padding-top:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--surface);padding:7px 12px;font-weight:600;font-size:12.5px;border-right:1px solid var(--line);color:var(--ink2);display:inline-flex;gap:6px;align-items:center}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--surface2)}
+.seg button[aria-pressed=true]{background:color-mix(in srgb,var(--cc) 18%,var(--surface));color:var(--cc);box-shadow:inset 0 -2px 0 var(--cc)}
+.ev{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr);gap:10px 20px;padding:14px 0;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}
+@media(max-width:760px){.ev{grid-template-columns:minmax(0,1fr)}}
+.ev .nm{font-weight:700}
+.ev .meta{font-size:12px;color:var(--ink2);display:flex;gap:6px 12px;flex-wrap:wrap;margin-top:4px}
+.ev .ctl{display:grid;gap:10px;min-width:0}
+.ev .mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:520px){.ev .mini{grid-template-columns:minmax(0,1fr)}}
+
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{background:var(--surface2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+td input[type=number]{width:80px;text-align:right}
+.mx td,.mx th{padding:6px 8px}
+.mx td.c{font-size:11px;max-width:96px;min-width:64px;line-height:1.25;border-left:1px solid var(--line)}
+.mx td.c.ok{background:color-mix(in srgb,var(--ok) 12%,var(--surface))}
+.mx td.c.part{background:color-mix(in srgb,var(--warn) 14%,var(--surface))}
+.mx td.c.belum{background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+.mx td.c.pl{background:var(--surface2)}
+.mx td.c.zz{color:var(--line)}
+
+/* photos */
+.drop{border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--ink2);display:grid;gap:8px;justify-items:center;background:var(--surface)}
+.drop.over{border-color:var(--brand);background:var(--brand-soft)}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.ph{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);display:grid}
+.ph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--surface2)}
+.ph .in{padding:10px;display:grid;gap:8px}
+
+.docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.dchk{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;background:var(--surface);cursor:pointer}
+.dchk input{margin-top:3px;width:16px;height:16px;accent-color:var(--brand)}
+.dchk b{display:block}.dchk span{font-size:12px;color:var(--ink2)}
+.note{font-size:12.5px;color:var(--ink2);background:var(--surface2);border-radius:10px;padding:10px 12px}
+.banner{background:color-mix(in srgb,var(--warn) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 40%,var(--surface));border-radius:12px;padding:10px 14px;font-size:13px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(20px,env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:13px;z-index:90;box-shadow:var(--shadow);max-width:90vw}
+.sep{height:1px;background:var(--line);margin:4px 0}
+.muted{color:var(--ink2)}
+.inert-ro [data-w]{pointer-events:none;opacity:.6}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="root"></div><div id="tip" role="tooltip"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+(function(){
+'use strict';
+var SEED={"cfg":{"program":"SURVEILANS","puskesmas":"PUSKESMAS SUMBERSARI","tahun":2026,"pj":"Dwiana Karomatul Magfiroh, S.KM","pjNip":"NIP. 19971912 202203 2 005","pjJabatan":"PENANGGUNG JAWAB","kapus":"dr. ADINDA PUTRI YUSRI AMRINA","kapusNip":"NIP. 1990409 201403 2 002","kapusJabatan":"KEPALA PUSKESMAS SUMBERSARI","kegiatan":[{"id":"k1","nama":"Pelaporan STP","tujuan":"Memperoleh informasi epidemiologi penyakit tertentu dan terdistribusinya informasi tersebut kepada program terkait, pusat kajian, dan pusat penelitian serta unit surveilans lain Secara Tepat Waktu","sasaran":"1 Laporan","pj":"KP. Surveilans","volume":"1 kali","rincian":"Pelaporan STP secara online","lokasi":"Puskesmas Sumbersari","metode":"Online","targetTahun":12,"satuan":"Laporan"},{"id":"k2","nama":"Pelaporan MR01","tujuan":"Melakukan pemantauan dan pelaporan data penyakit PD3I di Wilayah secara tepat waktu","sasaran":"4 Laporan","pj":"KP. Surveilans","volume":"4 kali","rincian":"Pelaporan MR01 secara online","lokasi":"Puskesmas Sumbersari","metode":"Online","targetTahun":52,"satuan":"Laporan"},{"id":"k3","nama":"Pelaporan W2/SKDR","tujuan":"Melaporkan W2 mingguan pada dinas kesehatan untuk mengetahui dan mencegah penyakit potensial wabah","sasaran":"4 laporan","pj":"KP. Surveilans","volume":"4 kali","rincian":"Pelaporan W2 secara online","lokasi":"Puskesmas Sumbersari","metode":"Online","targetTahun":52,"satuan":"Laporan"},{"id":"k4","nama":"Verifikasi rumor penyakit berpotensi KLB","tujuan":"Mengetahui kebenaraan dugaan dan penyebab kasus KLB","sasaran":"Alert SKDR","pj":"KP. Surveilans","volume":"Alert SKDR","rincian":"Verifikasi rumor/alert SKDR","lokasi":"Sesuai Kasus","metode":"Online","targetTahun":null,"satuan":"Sesuai kasus"},{"id":"k5","nama":"Penyelidikan epidemiologi penyakit berpotensi KLB","tujuan":"Mengidentifikasi sebaran kasus KLB dan mengetahui penyebabnya","sasaran":"Kasus KLB","pj":"KP. Surveilans","volume":"Kasus kali","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","metode":"Online","targetTahun":null,"satuan":"Sesuai kasus"},{"id":"k6","nama":"Pelacakan kontak penyakit berpotensi KLB","tujuan":"Mengisolasi kontak dan meminimalisir terjadinya sebaran kontak kasus KLB","sasaran":"Kontak Erat Kasus KLB","pj":"KP. Surveilans","volume":"Kontak kali","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","metode":"Online","targetTahun":null,"satuan":"Sesuai kasus"},{"id":"k7","nama":"Pelaporan Buletin SKDR Bulanan","tujuan":"Menggambarkan pola trend kenaikan dan penurunan penyakit potensial wabah di wilayah","sasaran":"1 laporan","pj":"KP. Surveilans","volume":"1 kali","rincian":"Pembuatan grafik trend penyakit dalam bentuk buletin","lokasi":"Puskesmas Sumbersari","metode":"Online","targetTahun":12,"satuan":"Laporan"},{"id":"k8","nama":"Pengambilan dan pengiriman spesimen penyakit potensi KLB","tujuan":"Mengetahui hasil dari dugaan kasus KLB","sasaran":"Kasus KLB","pj":"KP. Surveilans","volume":"Kasus kali","rincian":"Mengambil dan mengirim spesimen","lokasi":"Puskesmas Sumbersari dan Dinas Kesehatan","metode":"Online","targetTahun":null,"satuan":"Sesuai kasus"}],"indikator":[{"id":"i1","nama":"Kelengkapan laporan SKDR","target":0.9,"satuan":"dokumen","sasaran":52},{"id":"i2","nama":"Ketepatan laporan SKDR","target":0.8,"satuan":"dokumen","sasaran":52},{"id":"i3","nama":"Respon alert (sinyal kewaspadaan dini) SKDR <24 jam","target":0.8,"satuan":"persen","sasaran":42},{"id":"i4","nama":"Persentase KLB yang dilakukan respon awal sesuai standar dalam waktu ≤ 7 hari","target":0.55,"satuan":"persen","sasaran":0}]},"months":{"1":{"rows":[{"kid":"k1","nama":"Pelaporan STP","tujuan":"Memperoleh informasi epidemiologi penyakit tertentu dan terdistribusinya informasi tersebut kepada program terkait, pusat kajian, dan pusat penelitian serta unit surveilans lain Secara Tepat Waktu","sasaran":"1 Laporan","targetSasaran":"8.33 % (1 Laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"1-5 Januari","rincian":"Pelaporan STP secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"8.33 % (1 Laporan)","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"1-5 Januari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k2","nama":"Pelaporan MR01","tujuan":"Melakukan pemantauan dan pelaporan data penyakit PD3I di Wilayah secara tepat waktu","sasaran":"4 Laporan","targetSasaran":"8.33 % ( 5 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"4, 11, 18, 25 Januari, 01 Maret","rincian":"Pelaporan MR01 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"8.33 % ( 5 Laporan)","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"4, 11, 18, 25 Januari, 01 Maret","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k3","nama":"Pelaporan W2/SKDR","tujuan":"Melaporkan W2 mingguan pada dinas kesehatan untuk mengetahui dan mencegah penyakit potensial wabah","sasaran":"4 laporan","targetSasaran":"8.33 % (5 laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"6,13,20,27 Januari","rincian":"Pelaporan W2 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"8.33 % (5 laporan)","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"6,13,20,27 Januari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k4","nama":"Verifikasi rumor penyakit berpotensi KLB","tujuan":"Mengetahui kebenaraan dugaan dan penyebab kasus KLB","sasaran":"Alert SKDR","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Alert SKDR","jadwal":"7,14,21,28 Januari","rincian":"Verifikasi rumor/alert SKDR","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"100 % (sesuai kasus)","eSasaran":"Kasus KLB","eLokasi":"Website","eWaktu":"7,14,21,28 Januari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k5","nama":"Penyelidikan epidemiologi penyakit berpotensi KLB","tujuan":"Mengidentifikasi sebaran kasus KLB dan mengetahui penyebabnya","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Januari","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"100 % (sesuai kasus)","eSasaran":"Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Januari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k6","nama":"Pelacakan kontak penyakit berpotensi KLB","tujuan":"Mengisolasi kontak dan meminimalisir terjadinya sebaran kontak kasus KLB","sasaran":"Kontak Erat Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kontak kali","jadwal":"Januari","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"100 % (sesuai kasus)","eSasaran":"Kontak Erat Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Januari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k7","nama":"Pelaporan Buletin SKDR Bulanan","tujuan":"Menggambarkan pola trend kenaikan dan penurunan penyakit potensial wabah di wilayah","sasaran":"1 laporan","targetSasaran":"8.33 % (1 laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"Januari","rincian":"Pembuatan grafik trend penyakit dalam bentuk buletin","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"8.33 % (1 laporan)","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"Januari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k8","nama":"Pengambilan dan pengiriman spesimen penyakit potensi KLB","tujuan":"Mengetahui hasil dari dugaan kasus KLB","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Januari","rincian":"Mengambil dan mengirim spesimen","lokasi":"Puskesmas Sumbersari dan Dinas Kesehatan","bok":"","jkn":"","dau":"","lain":"-","eTarget":"100 % (sesuai kasus)","eSasaran":"Spesimen KLB","eLokasi":"Pusk. Sumbersari & Dinas Kesehatan","eWaktu":"Januari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null}],"pkp":{"i1":1,"i2":5,"i3":5,"i4":5},"ident":[]},"2":{"rows":[{"kid":"k1","nama":"Pelaporan STP","tujuan":"Memperoleh informasi epidemiologi penyakit tertentu dan terdistribusinya informasi tersebut kepada program terkait, pusat kajian, dan pusat penelitian serta unit surveilans lain Secara Tepat Waktu","sasaran":"1 Laporan","targetSasaran":"16.67 % (2 Laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"1-5 Februari","rincian":"Pelaporan STP secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"1-5 Februari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k2","nama":"Pelaporan MR01","tujuan":"Melakukan pemantauan dan pelaporan data penyakit PD3I di Wilayah secara tepat waktu","sasaran":"4 Laporan","targetSasaran":"16.67 % ( 9 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"2,9,16,23 Feb","rincian":"Pelaporan MR01 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"2,9,16,23 Feb","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k3","nama":"Pelaporan W2/SKDR","tujuan":"Melaporkan W2 mingguan pada dinas kesehatan untuk mengetahui dan mencegah penyakit potensial wabah","sasaran":"4 laporan","targetSasaran":"16.67 % (9 laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"2,9,16,23 Feb","rincian":"Pelaporan W2 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"2,9,16,23 Feb","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k4","nama":"Verifikasi rumor penyakit berpotensi KLB","tujuan":"Mengetahui kebenaraan dugaan dan penyebab kasus KLB","sasaran":"Alert SKDR","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Alert SKDR","jadwal":"2,9,16,23 Feb","rincian":"Verifikasi rumor/alert SKDR","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Alert SKDR","eSasaran":"Kasus KLB","eLokasi":"Website","eWaktu":"2,9,16,23 Feb","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k5","nama":"Penyelidikan epidemiologi penyakit berpotensi KLB","tujuan":"Mengidentifikasi sebaran kasus KLB dan mengetahui penyebabnya","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Februari","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Februari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k6","nama":"Pelacakan kontak penyakit berpotensi KLB","tujuan":"Mengisolasi kontak dan meminimalisir terjadinya sebaran kontak kasus KLB","sasaran":"Kontak Erat Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kontak kali","jadwal":"Februari","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kontak Erat Kasus KLB","eSasaran":"Kontak Erat Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Februari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"na","alasan":"Tidak ada kasus","targetN":null,"realN":null},{"kid":"k7","nama":"Pelaporan Buletin SKDR Bulanan","tujuan":"Menggambarkan pola trend kenaikan dan penurunan penyakit potensial wabah di wilayah","sasaran":"1 laporan","targetSasaran":"100 % (2 laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"Februari","rincian":"Pembuatan grafik trend penyakit dalam bentuk buletin","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"Februari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k8","nama":"Pengambilan dan pengiriman spesimen penyakit potensi KLB","tujuan":"Mengetahui hasil dari dugaan kasus KLB","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Februari","rincian":"Mengambil dan mengirim spesimen","lokasi":"Puskesmas Sumbersari dan Dinas Kesehatan","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Spesimen KLB","eLokasi":"Pusk. Sumbersari & Dinas Kesehatan","eWaktu":"Februari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"na","alasan":"Tidak ada kasus","targetN":null,"realN":null}],"pkp":{},"ident":[]},"3":{"rows":[{"kid":"k1","nama":"Pelaporan STP","tujuan":"Memperoleh informasi epidemiologi penyakit tertentu dan terdistribusinya informasi tersebut kepada program terkait, pusat kajian, dan pusat penelitian serta unit surveilans lain Secara Tepat Waktu","sasaran":"1 Laporan","targetSasaran":"25 % (3 Laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"1-5 Maret","rincian":"Pelaporan STP secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"1-5 Maret","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":1,"realN":null},{"kid":"k2","nama":"Pelaporan MR01","tujuan":"Melakukan pemantauan dan pelaporan data penyakit PD3I di Wilayah secara tepat waktu","sasaran":"5 Laporan","targetSasaran":"25 % (13 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"2,9,16,23,30 Maret","rincian":"Pelaporan MR01 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"5 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"2,9,16,23,30 Maret","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":4,"realN":null},{"kid":"k3","nama":"Pelaporan W2/SKDR","tujuan":"Melaporkan W2 mingguan pada dinas kesehatan untuk mengetahui dan mencegah penyakit potensial wabah","sasaran":"5 laporan","targetSasaran":"25 % (13 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"2,9,16,23,30 Maret","rincian":"Pelaporan W2 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"5 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"2,9,16,23,30 Maret","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":4,"realN":null},{"kid":"k4","nama":"Verifikasi rumor penyakit berpotensi KLB","tujuan":"Mengetahui kebenaraan dugaan dan penyebab kasus KLB","sasaran":"Alert SKDR","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Alert SKDR","jadwal":"2,9,16,23,30 Maret","rincian":"Verifikasi rumor/alert SKDR","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Alert SKDR","eSasaran":"Kasus KLB","eLokasi":"Website","eWaktu":"2,9,16,23,30 Maret","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":null,"realN":null},{"kid":"k5","nama":"Penyelidikan epidemiologi penyakit berpotensi KLB","tujuan":"Mengidentifikasi sebaran kasus KLB dan mengetahui penyebabnya","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Februari","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Februari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":null,"realN":null},{"kid":"k6","nama":"Pelacakan kontak penyakit berpotensi KLB","tujuan":"Mengisolasi kontak dan meminimalisir terjadinya sebaran kontak kasus KLB","sasaran":"Kontak Erat Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kontak kali","jadwal":"Februari","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kontak Erat Kasus KLB","eSasaran":"Kontak Erat Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Februari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":null,"realN":null},{"kid":"k7","nama":"Pelaporan Buletin SKDR Bulanan","tujuan":"Menggambarkan pola trend kenaikan dan penurunan penyakit potensial wabah di wilayah","sasaran":"1 laporan","targetSasaran":"100 % (2 laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"Februari","rincian":"Pembuatan grafik trend penyakit dalam bentuk buletin","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"Februari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":1,"realN":null},{"kid":"k8","nama":"Pengambilan dan pengiriman spesimen penyakit potensi KLB","tujuan":"Mengetahui hasil dari dugaan kasus KLB","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Februari","rincian":"Mengambil dan mengirim spesimen","lokasi":"Puskesmas Sumbersari dan Dinas Kesehatan","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Spesimen KLB","eLokasi":"Pusk. Sumbersari & Dinas Kesehatan","eWaktu":"Februari","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":null,"realN":null}],"pkp":{},"ident":[]},"4":{"rows":[{"kid":"k1","nama":"Pelaporan STP","tujuan":"Memperoleh informasi epidemiologi penyakit tertentu dan terdistribusinya informasi tersebut kepada program terkait, pusat kajian, dan pusat penelitian serta unit surveilans lain Secara Tepat Waktu","sasaran":"1 Laporan","targetSasaran":"33.33 % (4 Laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"1-5 April","rincian":"Pelaporan STP secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"1-5 April","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k2","nama":"Pelaporan MR01","tujuan":"Melakukan pemantauan dan pelaporan data penyakit PD3I di Wilayah secara tepat waktu","sasaran":"4 Laporan","targetSasaran":"33.33 % (17 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"6,13,20,27 April","rincian":"Pelaporan MR01 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"3, 10, 17, 24 April","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k3","nama":"Pelaporan W2/SKDR","tujuan":"Melaporkan W2 mingguan pada dinas kesehatan untuk mengetahui dan mencegah penyakit potensial wabah","sasaran":"4 laporan","targetSasaran":"33.33 % (17 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"6,13,20,27 April","rincian":"Pelaporan W2 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"3, 10, 17, 24 April","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k4","nama":"Verifikasi rumor penyakit berpotensi KLB","tujuan":"Mengetahui kebenaraan dugaan dan penyebab kasus KLB","sasaran":"Alert SKDR","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Alert SKDR","jadwal":"6,13,20,27 April","rincian":"Verifikasi rumor/alert SKDR","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Alert SKDR","eSasaran":"Kasus KLB","eLokasi":"Website","eWaktu":"3, 10, 17, 24 April","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k5","nama":"Penyelidikan epidemiologi penyakit berpotensi KLB","tujuan":"Mengidentifikasi sebaran kasus KLB dan mengetahui penyebabnya","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"April","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"April","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k6","nama":"Pelacakan kontak penyakit berpotensi KLB","tujuan":"Mengisolasi kontak dan meminimalisir terjadinya sebaran kontak kasus KLB","sasaran":"Kontak Erat Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kontak kali","jadwal":"April","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kontak Erat Kasus KLB","eSasaran":"Kontak Erat Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"April","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k7","nama":"Pelaporan Buletin SKDR Bulanan","tujuan":"Menggambarkan pola trend kenaikan dan penurunan penyakit potensial wabah di wilayah","sasaran":"1 laporan","targetSasaran":"100 % (4 laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"April","rincian":"Pembuatan grafik trend penyakit dalam bentuk buletin","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"April","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k8","nama":"Pengambilan dan pengiriman spesimen penyakit potensi KLB","tujuan":"Mengetahui hasil dari dugaan kasus KLB","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"April","rincian":"Mengambil dan mengirim spesimen","lokasi":"Puskesmas Sumbersari dan Dinas Kesehatan","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Spesimen KLB","eLokasi":"Pusk. Sumbersari & Dinas Kesehatan","eWaktu":"April","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null}],"pkp":{},"ident":[]},"5":{"rows":[{"kid":"k1","nama":"Pelaporan STP","tujuan":"Memperoleh informasi epidemiologi penyakit tertentu dan terdistribusinya informasi tersebut kepada program terkait, pusat kajian, dan pusat penelitian serta unit surveilans lain Secara Tepat Waktu","sasaran":"1 Laporan","targetSasaran":"33.33 % (4 Laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"1-5 Mei","rincian":"Pelaporan STP secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"1-5 Mei","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k2","nama":"Pelaporan MR01","tujuan":"Melakukan pemantauan dan pelaporan data penyakit PD3I di Wilayah secara tepat waktu","sasaran":"4 Laporan","targetSasaran":"33.33 % (17 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"1,8,15,22,29 Mei","rincian":"Pelaporan MR01 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"1,8,15,22,29 Mei","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k3","nama":"Pelaporan W2/SKDR","tujuan":"Melaporkan W2 mingguan pada dinas kesehatan untuk mengetahui dan mencegah penyakit potensial wabah","sasaran":"4 laporan","targetSasaran":"33.33 % (17 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"4,11,18,25 Mei","rincian":"Pelaporan W2 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"4,11,18,25 Mei","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k4","nama":"Verifikasi rumor penyakit berpotensi KLB","tujuan":"Mengetahui kebenaraan dugaan dan penyebab kasus KLB","sasaran":"Alert SKDR","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Alert SKDR","jadwal":"4,11,18,25 Mei","rincian":"Verifikasi rumor/alert SKDR","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Alert SKDR","eSasaran":"Kasus KLB","eLokasi":"Website","eWaktu":"4,11,18,25 Mei","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k5","nama":"Penyelidikan epidemiologi penyakit berpotensi KLB","tujuan":"Mengidentifikasi sebaran kasus KLB dan mengetahui penyebabnya","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Mei","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Mei","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k6","nama":"Pelacakan kontak penyakit berpotensi KLB","tujuan":"Mengisolasi kontak dan meminimalisir terjadinya sebaran kontak kasus KLB","sasaran":"Kontak Erat Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kontak kali","jadwal":"Mei","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kontak Erat Kasus KLB","eSasaran":"Kontak Erat Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Mei","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k7","nama":"Pelaporan Buletin SKDR Bulanan","tujuan":"Menggambarkan pola trend kenaikan dan penurunan penyakit potensial wabah di wilayah","sasaran":"1 laporan","targetSasaran":"100 % (4 laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"Mei","rincian":"Pembuatan grafik trend penyakit dalam bentuk buletin","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"Mei","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k8","nama":"Pengambilan dan pengiriman spesimen penyakit potensi KLB","tujuan":"Mengetahui hasil dari dugaan kasus KLB","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Mei","rincian":"Mengambil dan mengirim spesimen","lokasi":"Puskesmas Sumbersari dan Dinas Kesehatan","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Spesimen KLB","eLokasi":"Pusk. Sumbersari & Dinas Kesehatan","eWaktu":"Mei","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null}],"pkp":{},"ident":[]},"6":{"rows":[{"kid":"k1","nama":"Pelaporan STP","tujuan":"Memperoleh informasi epidemiologi penyakit tertentu dan terdistribusinya informasi tersebut kepada program terkait, pusat kajian, dan pusat penelitian serta unit surveilans lain Secara Tepat Waktu","sasaran":"1 Laporan","targetSasaran":"33.33 % (4 Laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"1-5 Juni","rincian":"Pelaporan STP secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"1-5 Juni","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k2","nama":"Pelaporan MR01","tujuan":"Melakukan pemantauan dan pelaporan data penyakit PD3I di Wilayah secara tepat waktu","sasaran":"4 Laporan","targetSasaran":"33.33 % (17 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"8,15,22,29 Juni","rincian":"Pelaporan MR01 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"5,12,19,26 Juni","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k3","nama":"Pelaporan W2/SKDR","tujuan":"Melaporkan W2 mingguan pada dinas kesehatan untuk mengetahui dan mencegah penyakit potensial wabah","sasaran":"4 laporan","targetSasaran":"33.33 % (17 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"8,15,22,29 Juni","rincian":"Pelaporan W2 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"5,12,19,26 Juni","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":4,"realN":4},{"kid":"k4","nama":"Verifikasi rumor penyakit berpotensi KLB","tujuan":"Mengetahui kebenaraan dugaan dan penyebab kasus KLB","sasaran":"Alert SKDR","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Alert SKDR","jadwal":"8,15,22,29 Juni","rincian":"Verifikasi rumor/alert SKDR","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Alert SKDR","eSasaran":"Kasus KLB","eLokasi":"Website","eWaktu":"5,12,19,26 Juni","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k5","nama":"Penyelidikan epidemiologi penyakit berpotensi KLB","tujuan":"Mengidentifikasi sebaran kasus KLB dan mengetahui penyebabnya","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Juni","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Juni","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k6","nama":"Pelacakan kontak penyakit berpotensi KLB","tujuan":"Mengisolasi kontak dan meminimalisir terjadinya sebaran kontak kasus KLB","sasaran":"Kontak Erat Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kontak kali","jadwal":"Juni","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kontak Erat Kasus KLB","eSasaran":"Kontak Erat Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Juni","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null},{"kid":"k7","nama":"Pelaporan Buletin SKDR Bulanan","tujuan":"Menggambarkan pola trend kenaikan dan penurunan penyakit potensial wabah di wilayah","sasaran":"1 laporan","targetSasaran":"100 % (4 laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"Juni","rincian":"Pembuatan grafik trend penyakit dalam bentuk buletin","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"Juni","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":1,"realN":1},{"kid":"k8","nama":"Pengambilan dan pengiriman spesimen penyakit potensi KLB","tujuan":"Mengetahui hasil dari dugaan kasus KLB","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Juni","rincian":"Mengambil dan mengirim spesimen","lokasi":"Puskesmas Sumbersari dan Dinas Kesehatan","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Spesimen KLB","eLokasi":"Pusk. Sumbersari & Dinas Kesehatan","eWaktu":"Juni","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"ok","alasan":"","targetN":null,"realN":null}],"pkp":{},"ident":[]},"7":{"rows":[{"kid":"k1","nama":"Pelaporan STP","tujuan":"Memperoleh informasi epidemiologi penyakit tertentu dan terdistribusinya informasi tersebut kepada program terkait, pusat kajian, dan pusat penelitian serta unit surveilans lain Secara Tepat Waktu","sasaran":"1 Laporan","targetSasaran":"33.33 % (6 Laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"1-5 Juli","rincian":"Pelaporan STP secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"1-5 Juli","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":1,"realN":null},{"kid":"k2","nama":"Pelaporan MR01","tujuan":"Melakukan pemantauan dan pelaporan data penyakit PD3I di Wilayah secara tepat waktu","sasaran":"4 Laporan","targetSasaran":"33.33 % (17 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"3,10,17,24,31 Juli","rincian":"Pelaporan MR01 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 Laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"3,10,17,24,31 Juli","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":4,"realN":null},{"kid":"k3","nama":"Pelaporan W2/SKDR","tujuan":"Melaporkan W2 mingguan pada dinas kesehatan untuk mengetahui dan mencegah penyakit potensial wabah","sasaran":"4 laporan","targetSasaran":"33.33 % (17 Laporan)","pj":"KP. Surveilans","volume":"4 kali","jadwal":"3,10,17,24,31 Juli","rincian":"Pelaporan W2 secara online","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"4 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"3,10,17,24,31 Juli","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":4,"realN":null},{"kid":"k4","nama":"Verifikasi rumor penyakit berpotensi KLB","tujuan":"Mengetahui kebenaraan dugaan dan penyebab kasus KLB","sasaran":"Alert SKDR","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Alert SKDR","jadwal":"3,10,17,24,31 Juli","rincian":"Verifikasi rumor/alert SKDR","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Alert SKDR","eSasaran":"Kasus KLB","eLokasi":"Website","eWaktu":"3,10,17,24,31 Juli","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":null,"realN":null},{"kid":"k5","nama":"Penyelidikan epidemiologi penyakit berpotensi KLB","tujuan":"Mengidentifikasi sebaran kasus KLB dan mengetahui penyebabnya","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Juli","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Juli","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":null,"realN":null},{"kid":"k6","nama":"Pelacakan kontak penyakit berpotensi KLB","tujuan":"Mengisolasi kontak dan meminimalisir terjadinya sebaran kontak kasus KLB","sasaran":"Kontak Erat Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kontak kali","jadwal":"Juli","rincian":"Kunjungan lapangan","lokasi":"Sesuai Kasus","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kontak Erat Kasus KLB","eSasaran":"Kontak Erat Kasus KLB","eLokasi":"Sesuai Kasus","eWaktu":"Juli","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":null,"realN":null},{"kid":"k7","nama":"Pelaporan Buletin SKDR Bulanan","tujuan":"Menggambarkan pola trend kenaikan dan penurunan penyakit potensial wabah di wilayah","sasaran":"1 laporan","targetSasaran":"100 % (4 laporan)","pj":"KP. Surveilans","volume":"1 kali","jadwal":"Juli","rincian":"Pembuatan grafik trend penyakit dalam bentuk buletin","lokasi":"Puskesmas Sumbersari","bok":"","jkn":"","dau":"","lain":"-","eTarget":"1 laporan","eSasaran":"Laporan","eLokasi":"Website","eWaktu":"Juli","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":1,"realN":null},{"kid":"k8","nama":"Pengambilan dan pengiriman spesimen penyakit potensi KLB","tujuan":"Mengetahui hasil dari dugaan kasus KLB","sasaran":"Kasus KLB","targetSasaran":"100 % (sesuai kasus)","pj":"KP. Surveilans","volume":"Kasus kali","jadwal":"Juli","rincian":"Mengambil dan mengirim spesimen","lokasi":"Puskesmas Sumbersari dan Dinas Kesehatan","bok":"","jkn":"","dau":"","lain":"-","eTarget":"Kasus KLB","eSasaran":"Spesimen KLB","eLokasi":"Pusk. Sumbersari & Dinas Kesehatan","eWaktu":"Juli","ePelaksana":"Dwiana Karomatul","eMetode":"Online","status":"","alasan":"","targetN":null,"realN":null}],"pkp":{},"ident":[]},"8":{"rows":[],"pkp":{},"ident":[]},"9":{"rows":[],"pkp":{},"ident":[]},"10":{"rows":[],"pkp":{},"ident":[]},"11":{"rows":[],"pkp":{},"ident":[]},"12":{"rows":[],"pkp":{},"ident":[]}}};
+var BL=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+var BS=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+var NOW=new Date();
+var PH={p:{l:'P',t:'Rencana',s:'RPK bulanan'},d:{l:'D',t:'Evaluasi',s:'Pelaksanaan kegiatan'},k:{l:'D',t:'Dokumentasi',s:'Foto kegiatan'},c:{l:'C',t:'Capaian PKP',s:'Monitoring indikator'},a:{l:'A',t:'Analisis & RTL',s:'Masalah dan tindak lanjut'}};
+var PHC={p:'sp',d:'sd',k:'sd',c:'sc',a:'sa'};
+var STAT={ok:'Terlaksana',part:'Sebagian',belum:'Belum',na:'Tidak ada kasus'};
+var STI={ok:'✓',part:'◐',belum:'✕',na:'–'};
+var S={cfg:null,months:{},foto:{},fotoLoaded:{},tab:'dash',month:1,sub:'p',ro:false,mode:'local',save:'idle',loaded:false,open:{},sel:{p:true,d:true,k:true,c:true,a:true},saveMsg:''};
+var DB=null,DL=null,timers={},LS=null;
+function $(s,r){return (r||document).querySelector(s)}
+function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function uid(p){return (p||'x')+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+function pct(x,d){if(x==null||isNaN(x))return '—';return (x*100).toFixed(d==null?1:d).replace('.',',').replace(/,0$/,'')+'%'}
+function nf(x){if(x==null||isNaN(x))return '—';return (Math.round(x*100)/100).toString().replace('.',',')}
+function toast(t){var e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(function(){e.remove()},2800)}
+try{LS=window.localStorage;LS.setItem('pdca26:t','1');LS.removeItem('pdca26:t')}catch(e){LS=null}
+var MEM={};
+function lget(k){try{return LS?LS.getItem(k):MEM[k]||null}catch(e){return MEM[k]||null}}
+function lset(k,v){try{if(LS)LS.setItem(k,v);else MEM[k]=v}catch(e){MEM[k]=v;throw e}}
+function ldel(k){try{if(LS)LS.removeItem(k)}catch(e){}delete MEM[k]}
+
+/* ---------- penyimpanan ---------- */
+function withTimeout(p,ms){return Promise.race([p,new Promise(function(r){setTimeout(function(){r(null)},ms)})])}
+function initCaps(){
+  if(!window.claude||!window.claude.use)return Promise.resolve();
+  return Promise.all([
+    withTimeout(window.claude.use('db').catch(function(){return null}),4500).then(function(x){DB=x}),
+    withTimeout(window.claude.use('downloads').catch(function(){return null}),4500).then(function(x){DL=x}),
+    withTimeout(window.claude.use('user').catch(function(){return null}),4500).then(function(u){
+      if(!u)return;return Promise.resolve(u.can&&u.can('data.write')).then(function(v){if(v===false)S.ro=true}).catch(function(){})})
+  ]);
+}
+function put(col,id,obj){
+  var data=clone(obj);
+  if(DB)return DB.doc(col+'/'+id).set(data);
+  lset('pdca26:'+col+':'+id,JSON.stringify(data));return Promise.resolve();
+}
+function del(col,id){if(DB)return DB.doc(col+'/'+id).delete();ldel('pdca26:'+col+':'+id);return Promise.resolve()}
+function loadAll(){
+  S.mode=DB?'db':'local';
+  if(DB){
+    return DB.collection('pdca').get().then(function(snap){
+      snap.docs.forEach(function(d){var v=d.data();if(d.id==='cfg')S.cfg=v;else if(/^m\d+$/.test(d.id))S.months[+d.id.slice(1)]=v});
+    });
+  }
+  var c=lget('pdca26:pdca:cfg');if(c)S.cfg=JSON.parse(c);
+  for(var m=1;m<=12;m++){var x=lget('pdca26:pdca:m'+m);if(x)S.months[m]=JSON.parse(x)}
+  return Promise.resolve();
+}
+function normalize(){
+  if(!S.cfg)return;
+  S.cfg.kegiatan=S.cfg.kegiatan||[];S.cfg.indikator=S.cfg.indikator||[];
+  for(var m=1;m<=12;m++){var o=S.months[m]=S.months[m]||{};o.rows=o.rows||[];o.pkp=o.pkp||{};o.ident=o.ident||[];o.nfoto=o.nfoto||0}
+}
+function setSave(st,msg){S.save=st;S.saveMsg=msg||'';var e=$('#savechip');if(e)e.outerHTML=chipHtml()}
+function chipHtml(){
+  var t=S.save==='busy'?'Menyimpan…':S.save==='err'?('Gagal menyimpan'+(S.saveMsg?': '+S.saveMsg:'')):(S.mode==='db'?'Tersimpan · dibagikan':'Tersimpan di perangkat ini');
+  var c=S.save==='busy'?'busy':S.save==='err'?'err':(S.mode==='db'?'':'loc');
+  return '<span class="chip-save '+c+'" id="savechip" role="status"><i></i>'+esc(t)+'</span>';
+}
+function queue(scope,n){
+  if(S.ro)return;
+  var key=scope+(n||'');setSave('busy');clearTimeout(timers[key]);
+  timers[key]=setTimeout(function(){
+    var p=scope==='cfg'?put('pdca','cfg',S.cfg):put('pdca','m'+n,S.months[n]);
+    p.then(function(){setSave('ok')}).catch(function(e){setSave('err',(e&&e.message||'').slice(0,60));});
+  },650);
+}
+function flushAll(){Object.keys(timers).forEach(function(k){})}
+
+/* ---------- perhitungan ---------- */
+function M(){return S.months[S.month]}
+function rowPct(r){
+  if(!r.status||r.status==='na')return null;
+  if(r.status==='ok')return 100;
+  if(r.status==='part'){if(r.targetN&&r.realN!=null)return Math.max(1,Math.min(99,Math.round(r.realN/r.targetN*100)));return 50}
+  return 0;
+}
+function monthEval(m){
+  var rows=S.months[m].rows,sum=0,n=0,ok=0,ev=0;
+  rows.forEach(function(r){if(r.status)ev++;var p=rowPct(r);if(p!=null){sum+=p;n++;if(r.status==='ok')ok++}});
+  return {total:rows.length,evaluated:ev,counted:n,ok:ok,pct:n?sum/n:null,sum:sum};
+}
+function pkpCalc(m,ind){
+  var E=+ind.sasaran||0,C=+ind.target||0,k=0,cur=S.months[m].pkp[ind.id],prev=0;
+  for(var i=1;i<=m;i++){var v=S.months[i].pkp[ind.id];if(v!=null&&v!==''){k+=+v;if(i<m)prev+=+v}}
+  var F=E*C,G=F/12*m,H=E?G/E:0,L=E?k/E:0,Mg=L-H;
+  var any=false;for(var j=1;j<=m;j++){var q=S.months[j].pkp[ind.id];if(q!=null&&q!=='')any=true}
+  var st=!any?'kosong':(E===0?'nosasaran':(Mg>=-1e-9?'ok':'bad'));
+  return {E:E,C:C,F:F,G:G,H:H,I:(cur==null||cur==='')?null:+cur,J:prev,K:k,L:L,M:Mg,st:st,any:any};
+}
+function pkpLabel(st){return {ok:'Mencapai target',bad:'Belum mencapai target',kosong:'Belum diisi',nosasaran:'Tidak ada sasaran'}[st]}
+function needsAnalysis(m){
+  var o=S.months[m];
+  if(o.rows.some(function(r){return r.status==='belum'||r.status==='part'}))return true;
+  return S.cfg.indikator.some(function(i){return pkpCalc(m,i).st==='bad'});
+}
+function check(m){
+  var o=S.months[m],rows=o.rows;
+  var p=rows.length>0,d=p&&rows.every(function(r){return !!r.status});
+  var c=S.cfg.indikator.length>0&&S.cfg.indikator.every(function(i){var v=o.pkp[i.id];return v!=null&&v!==''});
+  var a=needsAnalysis(m)?o.ident.some(function(x){return x.masalah||x.rtl}):(d&&c);
+  var k=(o.nfoto||0)>0;
+  var arr=[p,d,k,c,a];
+  return {p:p,d:d,k:k,c:c,a:a,pct:arr.filter(Boolean).length/5};
+}
+function lastDue(){var y=+S.cfg.tahun;if(y<NOW.getFullYear())return 12;if(y>NOW.getFullYear())return 0;return NOW.getMonth()+1}
+function latestEval(){for(var m=12;m>=1;m--){if(S.months[m].rows.some(function(r){return r.status}))return m}return Math.max(1,Math.min(12,lastDue()||1))}
+function openRTL(){
+  var out=[];
+  for(var m=1;m<=12;m++)S.months[m].ident.forEach(function(x,i){if((x.rtl||'').trim()&&x.rtlStatus!=='selesai')out.push({m:m,i:i,x:x})});
+  return out;
+}
+
+/* ---------- komponen kecil ---------- */
+function ring(p,sz){
+  sz=sz||20;var r=sz/2-2.5,c=2*Math.PI*r;
+  return '<svg class="ring" width="'+sz+'" height="'+sz+'" viewBox="0 0 '+sz+' '+sz+'" aria-hidden="true"><circle class="t" cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke-width="3"/><circle class="v" cx="'+sz/2+'" cy="'+sz/2+'" r="'+r+'" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+(c*p)+' '+c+'" transform="rotate(-90 '+sz/2+' '+sz/2+')"/></svg>';
+}
+function monthStrip(){
+  var due=lastDue(),h='<div class="months" role="group" aria-label="Pilih bulan">';
+  for(var m=1;m<=12;m++){
+    var ck=check(m);
+    h+='<button class="mbtn'+(m===due?' cur':'')+'" data-m="'+m+'" aria-pressed="'+(m===S.month)+'" data-tip="'+BL[m-1]+' · kelengkapan '+Math.round(ck.pct*100)+'%'+(m===due?' · bulan berjalan':'')+'">'+ring(ck.pct,22)+BS[m-1]+'</button>';
+  }
+  return h+'</div>';
+}
+function pdcaMark(sz){
+  return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 40 40" aria-hidden="true"><rect x="2" y="2" width="17" height="17" rx="6" fill="var(--p)"/><rect x="21" y="2" width="17" height="17" rx="6" fill="var(--d)"/><rect x="21" y="21" width="17" height="17" rx="6" fill="var(--c)"/><rect x="2" y="21" width="17" height="17" rx="6" fill="var(--a)"/><g fill="#fff" font-family="Plus Jakarta Sans,sans-serif" font-weight="800" font-size="11" text-anchor="middle"><text x="10.5" y="14.5">P</text><text x="29.5" y="14.5">D</text><text x="29.5" y="33.5">C</text><text x="10.5" y="33.5">A</text></g></svg>';
+}
+var CK='<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="currentColor"/><path d="M4.6 8.2l2.3 2.3 4.5-4.6" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var CHEV='<svg class="chev" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 2l5 5-5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/* ---------- shell ---------- */
+function shell(){
+  var c=S.cfg;
+  var tabs=[['dash','Dashboard'],['bulan','Isi Bulanan'],['tahun','RPK Tahunan'],['cetak','Cetak / PDF'],['set','Pengaturan']];
+  var h='<header class="bar"><div class="bar-in"><div class="brand">'+pdcaMark(38)+'<div><h1>PDCA Program '+esc(c?c.program:'')+'</h1><small>'+esc(c?(c.puskesmas+' · Tahun '+c.tahun):'Evaluasi program bulanan')+'</small></div></div>'+chipHtml()+
+   '<button class="iconbtn" data-act="theme" aria-label="Ganti tema terang/gelap" data-tip="Ganti tema"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v14A7 7 0 0 1 9 2z" fill="currentColor"/><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button></div>';
+  if(c)h+='<nav class="nav" aria-label="Menu utama">'+tabs.map(function(t){return '<button data-tab="'+t[0]+'" '+(S.tab===t[0]?'aria-current="page"':'')+'>'+t[1]+'</button>'}).join('')+'</nav>';
+  return h+'</header><main id="view"></main>';
+}
+function render(keepScroll){
+  var y=window.scrollY;
+  var root=$('#root');
+  if(!root.dataset.built||true){root.innerHTML=shell()}
+  var v=$('#view');
+  if(!S.loaded){v.innerHTML='<div class="empty"><b>Memuat data…</b>Menyiapkan PDCA program Anda.</div>';return}
+  if(!S.cfg){v.innerHTML=welcome();return}
+  var h='';
+  if(S.ro)h+='<div class="banner">Anda hanya bisa melihat data ini. Minta akses Contributor atau Editor kepada pemilik untuk mengisi PDCA.</div>';
+  h+='<div class="pg '+(S.ro?'inert-ro':'')+'">';
+  if(S.tab==='dash')h+=dash();
+  else if(S.tab==='bulan')h+=bulan();
+  else if(S.tab==='tahun')h+=tahun();
+  else if(S.tab==='cetak')h+=cetak();
+  else h+=settings();
+  h+='</div>';
+  v.innerHTML=h;
+  if(keepScroll!==false)window.scrollTo(0,y);
+  if(S.tab==='bulan'&&S.sub==='k')ensureFoto(S.month);
+}
+function welcome(){
+  return '<div class="card" style="max-width:640px;margin:30px auto;text-align:center;display:grid;gap:14px;justify-items:center">'+pdcaMark(64)+
+   '<h2 style="font-size:22px;font-weight:800">Selamat datang di PDCA Program</h2><p class="muted" style="margin:0">Belum ada data tersimpan. Mulai dari data Excel “PDCA SURVEILANS 2026” (kegiatan, indikator PKP, RPK, evaluasi), atau mulai dengan lembar kosong.</p>'+
+   '<div class="tools" style="justify-content:center"><button class="btn pri" data-act="seed">Muat data dari Excel PDCA Surveilans 2026</button><button class="btn" data-act="blank">Mulai kosong</button></div></div>';
+}
+
+/* ---------- dashboard ---------- */
+function dash(){
+  var c=S.cfg,m=S.month,due=lastDue();
+  // KPI
+  var sum=0,n=0,okN=0,evN=0;
+  for(var i=1;i<=m;i++){var e=monthEval(i);sum+=e.sum;n+=e.counted;okN+=e.ok}
+  var kg=n?sum/n:null;
+  var full=0;for(var j=1;j<=due;j++)if(check(j).pct===1)full++;
+  var inds=c.indikator.filter(function(i){return +i.sasaran>0}),good=0,anyP=false;
+  inds.forEach(function(i){var r=pkpCalc(m,i);if(r.any)anyP=true;if(r.st==='ok')good++});
+  var rtl=openRTL();
+  var h='<div class="head"><div><h2 class="big">Ringkasan sampai '+BL[m-1]+' '+c.tahun+'</h2><span class="muted">Pilih bulan untuk melihat posisi capaian pada bulan tersebut.</span></div></div>'+monthStrip();
+  h+='<div class="grid4">'+
+   kpi('Kegiatan terlaksana',kg==null?'—':Math.round(kg)+'<small>%</small>',n?okN+' dari '+n+' kegiatan terlaksana penuh':'Belum ada evaluasi',kg||0,kg==null?'':(kg>=90?'ok':kg>=70?'warn':'bad'))+
+   kpi('Bulan terisi lengkap',full+'<small> / '+due+'</small>','Rencana, evaluasi, foto, PKP, analisis',due?full/due*100:0,'')+
+   kpi('Indikator PKP tercapai',anyP?good+'<small> / '+inds.length+'</small>':'—',anyP?'Per '+BL[m-1]+', dibanding target jalan':'Capaian PKP belum diisi',inds.length&&anyP?good/inds.length*100:0,'')+
+   kpi('RTL belum selesai',rtl.length+'<small> item</small>',rtl.length?'Dari semua bulan':'Tidak ada tindak lanjut tertunda',null,'')+'</div>';
+  h+='<div class="grid2"><div class="card"><h2>Capaian kegiatan per bulan</h2><div class="sub">Persentase kegiatan yang terlaksana dari rencana yang sudah dievaluasi.</div>'+barChart()+'</div>'+
+     '<div class="card"><h2>Pengingat</h2><div class="sub">Hal yang belum diisi sampai bulan berjalan.</div>'+reminders()+'</div></div>';
+  h+='<div class="card"><h2>Peta pelaksanaan kegiatan</h2><div class="sub">Status tiap kegiatan per bulan. Klik kotak untuk membuka evaluasinya.</div>'+heat()+'</div>';
+  h+='<div class="card"><h2>Capaian indikator PKP · '+BL[m-1]+'</h2><div class="sub">Kumulatif dibanding target jalan (garis tebal) dan target akhir tahun (garis tipis).</div>'+pkpBullets()+'</div>';
+  h+=followUp();
+  return h;
+}
+function kpi(k,v,s,p,st){
+  return '<div class="card kpi"><div class="k">'+k+'</div><div class="v num">'+v+'</div><div class="s">'+s+'</div>'+(p==null?'':'<div class="meter"><i style="width:'+Math.max(0,Math.min(100,p))+'%'+(st?';background:var(--'+st+')':'')+'"></i></div>')+'</div>';
+}
+function barChart(){
+  var W=640,H=230,L=34,B=28,T=18,pw=W-L-8,ph=H-B-T,bw=pw/12,due=lastDue(),h='';
+  h+='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Grafik persentase kegiatan terlaksana per bulan">';
+  [0,50,100].forEach(function(g){var y=T+ph*(1-g/100);h+='<line class="gridl" x1="'+L+'" x2="'+(W-8)+'" y1="'+y+'" y2="'+y+'"'+(g?' stroke-dasharray="3 4"':'')+'/><text class="axis" x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end">'+g+'</text>'});
+  for(var m=1;m<=12;m++){
+    var e=monthEval(m),x=L+bw*(m-1)+bw*.16,w=bw*.68,sel=m===S.month;
+    var tip;
+    if(e.pct!=null){
+      var bh=Math.max(3,ph*e.pct/100),y=T+ph-bh,st=e.pct>=90?'var(--brand)':e.pct>=70?'var(--warn)':'var(--bad)';
+      tip=BL[m-1]+': '+Math.round(e.pct)+'% · '+e.ok+' dari '+e.counted+' kegiatan terlaksana penuh';
+      h+='<g data-m="'+m+'" data-tip="'+esc(tip)+'"><rect x="'+(L+bw*(m-1))+'" y="'+T+'" width="'+bw+'" height="'+(ph+B-4)+'" fill="transparent"/><path d="M'+x+' '+(y+bh)+'V'+(y+4)+'a4 4 0 0 1 4-4h'+(w-8)+'a4 4 0 0 1 4 4V'+(y+bh)+'z" fill="'+st+'"'+(sel?'':' opacity=".82"')+'/>'+
+        '<text x="'+(x+w/2)+'" y="'+(y-5)+'" text-anchor="middle" class="axis" style="font-weight:700;fill:var(--ink)">'+Math.round(e.pct)+'</text></g>';
+    }else{
+      var late=m<=due;
+      tip=BL[m-1]+': '+(late?'evaluasi belum diisi':'belum waktunya');
+      h+='<g data-m="'+m+'" data-tip="'+esc(tip)+'"><rect x="'+(L+bw*(m-1))+'" y="'+T+'" width="'+bw+'" height="'+(ph+B-4)+'" fill="transparent"/><rect x="'+x+'" y="'+(T+ph-16)+'" width="'+w+'" height="16" rx="4" fill="none" stroke="'+(late?'var(--bad)':'var(--line)')+'" stroke-width="1.5" stroke-dasharray="3 3"/>'+(late?'<text x="'+(x+w/2)+'" y="'+(T+ph-4.5)+'" text-anchor="middle" class="axis" style="fill:var(--bad);font-weight:800">!</text>':'')+'</g>';
+    }
+    h+='<text x="'+(L+bw*(m-1)+bw/2)+'" y="'+(H-8)+'" text-anchor="middle" class="axis" style="'+(sel?'font-weight:800;fill:var(--ink)':'')+'">'+BS[m-1]+'</text>';
+    if(sel)h+='<rect x="'+(L+bw*(m-1)+2)+'" y="'+(H-B+2)+'" width="'+(bw-4)+'" height="3" rx="1.5" fill="var(--brand)"/>';
+  }
+  h+='</svg><div class="legend"><span><i style="width:12px;height:12px;border-radius:3px;background:var(--brand);display:inline-block"></i> ≥ 90%</span><span><i style="width:12px;height:12px;border-radius:3px;background:var(--warn);display:inline-block"></i> 70–89%</span><span><i style="width:12px;height:12px;border-radius:3px;background:var(--bad);display:inline-block"></i> &lt; 70%</span><span>! = evaluasi belum diisi</span></div>';
+  return h;
+}
+function reminders(){
+  var due=lastDue(),items=[];
+  for(var m=1;m<=due;m++){
+    var o=S.months[m],ck=check(m),nm=BL[m-1];
+    if(!ck.p)items.push({m:m,sub:'p',t:'RPK '+nm+' belum dibuat',c:'bad'});
+    else if(!ck.d)items.push({m:m,sub:'d',t:'Evaluasi '+nm+' belum lengkap ('+o.rows.filter(function(r){return r.status}).length+'/'+o.rows.length+')',c:'bad'});
+    if(!ck.c&&ck.p)items.push({m:m,sub:'c',t:'Capaian PKP '+nm+' belum diisi',c:'warn'});
+    if(ck.p&&ck.d&&ck.c&&!ck.a)items.push({m:m,sub:'a',t:'Analisis & RTL '+nm+' perlu diisi',c:'warn'});
+    if(ck.p&&ck.d&&!ck.k)items.push({m:m,sub:'k',t:'Belum ada foto dokumentasi '+nm,c:'warn'});
+  }
+  var rt=openRTL().filter(function(r){return r.x.tenggat&&r.x.tenggat<NOW.toISOString().slice(0,10)});
+  rt.forEach(function(r){items.push({m:r.m,sub:'a',t:'RTL lewat tenggat: '+(r.x.rtl||'').slice(0,60),c:'bad'})});
+  if(!items.length)return '<div class="empty"><b>Semua beres</b>Tidak ada isian yang tertinggal sampai bulan ini.</div>';
+  return '<ul class="rem">'+items.slice(0,8).map(function(it){return '<li class="'+it.c+'"><button data-go="'+it.m+':'+it.sub+'"><span class="dot"></span><span>'+esc(it.t)+'</span></button></li>'}).join('')+'</ul>'+(items.length>8?'<p class="muted" style="font-size:12px;margin:10px 0 0">+ '+(items.length-8)+' pengingat lain</p>':'');
+}
+function heat(){
+  var c=S.cfg,h='<div class="heatw"><div class="heat" style="min-width:560px"><div></div>';
+  for(var m=1;m<=12;m++)h+='<div class="ch">'+BS[m-1]+'</div>';
+  c.kegiatan.forEach(function(k){
+    h+='<div class="rl">'+esc(k.nama)+'</div>';
+    for(var m=1;m<=12;m++){
+      var r=S.months[m].rows.filter(function(x){return x.kid===k.id})[0],cl,ic,tip=BL[m-1]+' · '+k.nama+': ';
+      if(!r){cl='none';ic='·';tip+='tidak direncanakan'}
+      else if(!r.status){cl='plan';ic='';tip+='direncanakan ('+(r.jadwal||'jadwal belum diisi')+'), belum dievaluasi'}
+      else{cl=r.status;ic=STI[r.status];tip+=STAT[r.status]+(r.alasan?' — '+r.alasan:'')}
+      h+='<button class="hc '+cl+(m===S.month?' sel':'')+'" data-go="'+m+':d" data-tip="'+esc(tip)+'" aria-label="'+esc(tip)+'">'+ic+'</button>';
+    }
+  });
+  h+='</div></div><div class="legend"><span><i class="hc ok" style="display:inline-grid">✓</i> Terlaksana</span><span><i class="hc part" style="display:inline-grid">◐</i> Sebagian</span><span><i class="hc belum" style="display:inline-grid">✕</i> Belum</span><span><i class="hc na" style="display:inline-grid">–</i> Tidak ada kasus</span><span><i class="hc plan" style="display:inline-grid"></i> Belum dievaluasi</span></div>';
+  return h;
+}
+function spark(ind,m){
+  var W=170,H=48,pts=[],pts2=[];
+  for(var i=1;i<=12;i++){var r=pkpCalc(i,ind);pts2.push(r.H);if(i<=m)pts.push(r.any?r.L:null)}
+  var mx=Math.max(.05,pts2[11],Math.max.apply(null,pts.filter(function(x){return x!=null})))*1.1;
+  function xy(i,v){return [4+(W-8)*i/11,H-4-(H-10)*v/mx]}
+  var d2=pts2.map(function(v,i){var p=xy(i,v);return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)}).join('');
+  var d1='',last=null;
+  pts.forEach(function(v,i){if(v==null)return;var p=xy(i,v);d1+=(d1?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);last=p});
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="Tren kumulatif '+esc(ind.nama)+'"><path d="'+d2+'" fill="none" stroke="var(--ink2)" stroke-width="1.5" stroke-dasharray="4 3" opacity=".7"/>'+(d1?'<path d="'+d1+'" fill="none" stroke="var(--brand)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>':'')+(last?'<circle cx="'+last[0]+'" cy="'+last[1]+'" r="4" fill="var(--brand)" stroke="var(--surface)" stroke-width="2"/>':'')+'</svg>';
+}
+function pkpBullets(){
+  var m=S.month,h='';
+  S.cfg.indikator.forEach(function(ind){
+    var r=pkpCalc(m,ind),tip=esc(ind.nama+': kumulatif '+pct(r.L)+', target jalan '+pct(r.H)+', target akhir '+pct(r.C));
+    h+='<div class="ind"><div><div class="t"><span>'+esc(ind.nama)+'</span><span class="pill '+(r.st==='nosasaran'?'na':r.st)+'">'+(r.st==='ok'?'✓ ':r.st==='bad'?'✕ ':'')+pkpLabel(r.st)+'</span></div>';
+    if(r.E>0){
+      h+='<div class="bullet" data-tip="'+tip+'"><div class="f '+(r.st==='bad'?'bad':'')+'" style="width:'+Math.min(100,r.L*100)+'%"></div><div class="e" style="left:'+Math.min(100,r.C*100)+'%"></div><div class="m" style="left:'+Math.min(100,r.H*100)+'%"></div></div>'+
+       '<div class="d num"><span>Kumulatif <b>'+nf(r.K)+' / '+nf(r.E)+' '+esc(ind.satuan)+' ('+pct(r.L)+')</b></span><span>Target jalan <b>'+pct(r.H)+'</b></span><span>Target akhir <b>'+pct(r.C,0)+'</b></span></div>';
+    }else h+='<div class="d" style="margin-top:8px"><span>Jumlah sasaran 0 — cakupan tercatat <b class="num">'+nf(r.K)+'</b>. Ubah jumlah sasaran di Pengaturan bila perlu.</span></div>';
+    h+='</div><div>'+spark(ind,m)+'<div class="muted" style="font-size:11px;text-align:right">Tren kumulatif Jan–'+BS[m-1]+'</div></div></div>';
+  });
+  return h||'<div class="empty"><b>Belum ada indikator</b>Tambahkan di Pengaturan.</div>';
+}
+function followUp(){
+  var m=S.month,o=S.months[m],bad=o.rows.filter(function(r){return r.status==='belum'||r.status==='part'||(r.status==='na')});
+  var rtl=openRTL();
+  var h='<div class="grid2"><div class="card"><h2>Kegiatan belum penuh · '+BL[m-1]+'</h2><div class="sub">Kegiatan yang belum terlaksana, sebagian, atau tanpa kasus, beserta alasannya.</div>';
+  h+=bad.length?'<ul class="rem">'+bad.map(function(r){return '<li class="'+r.status+'"><button data-go="'+m+':d"><span class="dot"></span><span><b>'+esc(r.nama)+'</b> <span class="pill '+r.status+'">'+STAT[r.status]+'</span><br><span class="muted">'+esc(r.alasan||'Alasan belum diisi')+'</span></span></button></li>'}).join('')+'</ul>':'<div class="empty"><b>Tidak ada</b>Semua kegiatan yang dievaluasi bulan ini terlaksana.</div>';
+  h+='</div><div class="card"><h2>Rencana tindak lanjut terbuka</h2><div class="sub">Dari analisis semua bulan.</div>';
+  h+=rtl.length?'<ul class="rem">'+rtl.slice(0,6).map(function(r){var st=r.x.rtlStatus==='berjalan'?'warn':'na';return '<li class="'+st+'"><button data-go="'+r.m+':a"><span class="dot"></span><span><b>'+BL[r.m-1]+'</b> · '+esc((r.x.rtl||'').slice(0,90))+'<br><span class="muted">'+(r.x.rtlStatus==='berjalan'?'Berjalan':'Direncanakan')+(r.x.tenggat?' · tenggat '+esc(r.x.tenggat):'')+'</span></span></button></li>'}).join('')+'</ul>':'<div class="empty"><b>Belum ada RTL</b>Isi di tab Analisis & RTL bulan terkait.</div>';
+  return h+'</div></div>';
+}
+
+/* ---------- bulanan ---------- */
+function bulan(){
+  var m=S.month,ck=check(m),h='<div class="head"><div><h2 class="big">'+BL[m-1]+' '+S.cfg.tahun+'</h2><span class="muted">Kelengkapan '+Math.round(ck.pct*100)+'% · isi dari kiri ke kanan mengikuti siklus PDCA.</span></div><div class="tools"><button class="btn pri" data-act="pdfMonth">Unduh PDF bulan ini</button></div></div>'+monthStrip();
+  h+='<div class="steps" role="tablist">'+['p','d','k','c','a'].map(function(k){var s=PH[k];return '<button class="step '+PHC[k]+'" role="tab" data-sub="'+k+'" aria-selected="'+(S.sub===k)+'"><span class="l">'+s.l+'</span><span style="min-width:0"><b>'+s.t+'</b><span>'+s.s+'</span></span>'+(ck[k]?'<span class="ck" aria-label="Lengkap">'+CK+'</span>':'')+'</button>'}).join('')+'</div>';
+  h+='<div class="card" data-w>'+({p:subP,d:subD,k:subK,c:subC,a:subA}[S.sub])()+'</div>';
+  return h;
+}
+function fld(label,path,val,cls,type,ph){
+  return '<label class="f '+(cls||'')+'">'+label+'<input '+(type==='number'?'type="number" step="any" inputmode="decimal"':type==='date'?'type="date"':'type="text"')+' data-b="'+path+'" value="'+esc(val==null?'':val)+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+'></label>';
+}
+function area(label,path,val,cls,ph){return '<label class="f '+(cls||'')+'">'+label+'<textarea data-b="'+path+'" rows="2"'+(ph?' placeholder="'+esc(ph)+'"':'')+'>'+esc(val||'')+'</textarea></label>'}
+function subP(){
+  var m=S.month,o=M(),h='<div class="head" style="margin-bottom:12px"><div><h2>P · Rencana Pelaksanaan Kegiatan (RPK) '+BL[m-1]+'</h2><div class="sub" style="margin:0">Rencana kegiatan yang akan dijalankan bulan ini.</div></div><div class="tools">'+
+   '<button class="btn sm" data-act="fromMaster">Isi dari RPK Tahunan</button>'+(m>1?'<button class="btn sm" data-act="copyPrev">Salin dari '+BS[m-2]+'</button>':'')+'<button class="btn sm" data-act="addRow">+ Kegiatan</button></div></div>';
+  if(!o.rows.length)return h+'<div class="empty"><b>RPK '+BL[m-1]+' masih kosong</b>Isi cepat dari daftar kegiatan tahunan, salin dari bulan lalu, atau tambah kegiatan satu per satu.<div class="tools" style="justify-content:center;margin-top:12px"><button class="btn pri" data-act="fromMaster">Isi dari RPK Tahunan</button>'+(m>1&&S.months[m-1].rows.length?'<button class="btn" data-act="copyPrev">Salin dari '+BL[m-2]+'</button>':'')+'</div></div>';
+  o.rows.forEach(function(r,i){
+    var k='p'+m+'_'+i,b='m:rows.'+i+'.';
+    h+='<details class="rowcard" data-open="'+k+'" '+(S.open[k]?'open':'')+'><summary><span class="n">'+(i+1)+'</span><span class="tt">'+esc(r.nama||'(kegiatan baru)')+'<small>'+esc([r.jadwal,r.volume,r.lokasi].filter(Boolean).join(' · ')||'Ketuk untuk mengisi detail')+'</small></span>'+CHEV+'</summary><div class="body"><div class="fgrid">'+
+     fld('Kegiatan',b+'nama',r.nama,'s2')+fld('Penanggung jawab',b+'pj',r.pj,'s2')+
+     area('Tujuan',b+'tujuan',r.tujuan,'s4')+
+     fld('Sasaran',b+'sasaran',r.sasaran)+fld('Target sasaran (kumulatif)',b+'targetSasaran',r.targetSasaran)+fld('Volume kegiatan',b+'volume',r.volume)+fld('Target jumlah (angka)',b+'targetN',r.targetN,'','number','mis. 4')+
+     fld('Jadwal',b+'jadwal',r.jadwal,'s2','','mis. 2,9,16,23 Feb')+fld('Lokasi kegiatan',b+'lokasi',r.lokasi,'s2')+
+     fld('Rincian pelaksanaan',b+'rincian',r.rincian,'s4')+
+     fld('Biaya BOK',b+'bok',r.bok)+fld('Biaya JKN',b+'jkn',r.jkn)+fld('Biaya DAU',b+'dau',r.dau)+fld('Biaya lain-lain',b+'lain',r.lain)+
+     '</div><div class="tools" style="margin-top:12px"><button class="btn sm danger" data-act="delRow" data-i="'+i+'" data-confirm="1">Hapus kegiatan</button></div></div></details>';
+  });
+  return h;
+}
+function subD(){
+  var m=S.month,o=M(),e=monthEval(m);
+  var h='<div class="head" style="margin-bottom:6px"><div><h2>D · Evaluasi Kegiatan '+BL[m-1]+'</h2><div class="sub" style="margin:0">Tandai hasil tiap kegiatan yang direncanakan di RPK bulan ini.</div></div><div class="tools"><button class="btn sm" data-act="fillEval">Lengkapi kolom dari RPK</button><button class="btn sm" data-act="allOk">Tandai semua terlaksana</button></div></div>';
+  if(!o.rows.length)return h+'<div class="empty"><b>Belum ada kegiatan</b>Buat RPK '+BL[m-1]+' dulu di tab Rencana.<div style="margin-top:10px"><button class="btn pri" data-sub="p">Ke tab Rencana</button></div></div>';
+  h+='<div class="note num" style="margin-bottom:6px">Terisi '+e.evaluated+' dari '+e.total+' kegiatan'+(e.pct!=null?' · capaian <b>'+Math.round(e.pct)+'%</b>':'')+'</div>';
+  o.rows.forEach(function(r,i){
+    var b='m:rows.'+i+'.',st=r.status||'';
+    h+='<div class="ev"><div><div class="nm">'+(i+1)+'. '+esc(r.nama)+'</div><div class="meta"><span>Rencana: <b>'+esc(r.jadwal||'—')+'</b></span><span>'+esc(r.volume||'')+'</span></div></div><div class="ctl">'+
+     '<div class="seg" role="group" aria-label="Hasil evaluasi">'+['ok','part','belum','na'].map(function(s){return '<button class="'+s+'" data-act="setSt" data-i="'+i+'" data-v="'+s+'" aria-pressed="'+(st===s)+'">'+STI[s]+' '+STAT[s]+'</button>'}).join('')+'</div>';
+    if(st==='part'||(st==='ok'&&r.targetN)||(st==='belum'&&r.targetN))h+='<div class="mini">'+fld('Realisasi (angka)',b+'realN',r.realN,'','number')+fld('Target (angka)',b+'targetN',r.targetN,'','number')+'<div class="muted" style="font-size:12px;align-self:end;padding-bottom:9px" id="rp'+i+'">'+(rowPct(r)!=null?'Capaian '+rowPct(r)+'%':'')+'</div></div>';
+    if(st==='part'||st==='belum'||st==='na')h+=area('Alasan belum / tidak terlaksana',b+'alasan',r.alasan,'',st==='na'?'mis. Tidak ada kasus bulan ini':'Apa penyebabnya?');
+    h+='<details class="rowcard" data-open="e'+m+'_'+i+'" '+(S.open['e'+m+'_'+i]?'open':'')+' style="border-style:dashed"><summary style="padding:8px 12px"><span class="tt" style="font-size:12.5px;font-weight:600;color:var(--ink2)">Detail kolom evaluasi (target, lokasi, waktu, pelaksana, metode)</span>'+CHEV+'</summary><div class="body"><div class="fgrid">'+
+      fld('Target',b+'eTarget',r.eTarget)+fld('Sasaran',b+'eSasaran',r.eSasaran)+fld('Lokasi',b+'eLokasi',r.eLokasi)+fld('Waktu pelaksanaan',b+'eWaktu',r.eWaktu)+fld('Pelaksana',b+'ePelaksana',r.ePelaksana,'s2')+fld('Metode',b+'eMetode',r.eMetode,'s2')+'</div></div></details>';
+    h+='</div></div>';
+  });
+  return h;
+}
+function fotoList(m){return (S.foto[m]||[])}
+function subK(){
+  var m=S.month,h='<div class="head" style="margin-bottom:12px"><div><h2>D · Dokumentasi Kegiatan '+BL[m-1]+'</h2><div class="sub" style="margin:0">Unggah foto kegiatan. Foto dikompres otomatis dan ikut tercetak di PDF.</div></div></div>';
+  h+='<label class="drop" id="drop"><b style="color:var(--ink)">Tarik foto ke sini atau pilih dari perangkat</b><span>JPG, PNG, atau HEIC yang bisa dibuka browser · bisa banyak sekaligus</span><span class="btn pri" style="pointer-events:none">Pilih foto</span><input type="file" id="fileIn" accept="image/*" multiple hidden></label>';
+  if(!S.fotoLoaded[m])return h+'<p class="muted">Memuat foto…</p>';
+  var list=fotoList(m);
+  if(!list.length)return h+'<p class="muted" style="margin-top:14px">Belum ada foto untuk '+BL[m-1]+'.</p>';
+  h+='<div class="photos" style="margin-top:16px">'+list.map(function(f,i){
+    var b='f:'+f.id+'.';
+    return '<div class="ph"><img src="'+esc(f.data)+'" alt="Dokumentasi '+esc(f.kegiatan||'')+'"><div class="in">'+
+      '<label class="f">Kegiatan<select data-b="'+b+'kegiatan"><option value="">— pilih —</option>'+S.cfg.kegiatan.map(function(k){return '<option'+(k.nama===f.kegiatan?' selected':'')+'>'+esc(k.nama)+'</option>'}).join('')+'</select></label>'+
+      fld('Tanggal',b+'tanggal',f.tanggal,'','date')+fld('Tempat',b+'tempat',f.tempat,'')+
+      '<button class="btn sm danger" data-act="delFoto" data-id="'+esc(f.id)+'" data-confirm="1">Hapus foto</button></div></div>';
+  }).join('')+'</div>';
+  return h;
+}
+function subC(){
+  var m=S.month,o=M(),h='<div class="head" style="margin-bottom:12px"><div><h2>C · Capaian PKP '+BL[m-1]+'</h2><div class="sub" style="margin:0">Isi cakupan bulan ini. Bulan lalu, kumulatif, target jalan, dan kesenjangan dihitung otomatis.</div></div></div>';
+  if(!S.cfg.indikator.length)return h+'<div class="empty"><b>Belum ada indikator PKP</b>Tambahkan di Pengaturan.</div>';
+  h+='<div class="tw"><table class="num"><thead><tr><th>No</th><th>Indikator</th><th class="r">Target</th><th>Satuan</th><th class="r">Jml sasaran</th><th class="r">Jml target sasaran</th><th class="r">Target jalan</th><th class="r">%</th><th class="r">Cakupan bulan ini</th><th class="r">Bulan lalu</th><th class="r">Kumulatif</th><th class="r">%</th><th class="r">Kesenjangan</th><th>Keterangan</th></tr></thead><tbody>';
+  S.cfg.indikator.forEach(function(ind,i){
+    var r=pkpCalc(m,ind),v=o.pkp[ind.id];
+    h+='<tr data-ind="'+esc(ind.id)+'"><td>'+(i+1)+'</td><td style="min-width:240px;font-weight:600">'+esc(ind.nama)+'</td><td class="r">'+pct(r.C,0)+'</td><td>'+esc(ind.satuan)+'</td><td class="r">'+nf(r.E)+'</td><td class="r">'+nf(r.F)+'</td><td class="r">'+nf(r.G)+'</td><td class="r">'+pct(r.H)+'</td><td class="r"><input type="number" step="any" inputmode="decimal" data-b="m:pkp.'+esc(ind.id)+'" value="'+esc(v==null?'':v)+'" aria-label="Cakupan bulan ini '+esc(ind.nama)+'"></td><td class="r">'+nf(r.J)+'</td><td class="r" data-k>'+nf(r.K)+'</td><td class="r" data-l>'+pct(r.L)+'</td><td class="r" data-mg>'+(r.E?(r.M>=0?'+':'')+(r.M*100).toFixed(1).replace('.',',')+'%':'—')+'</td><td data-st><span class="pill '+(r.st==='nosasaran'?'na':r.st)+'">'+pkpLabel(r.st)+'</span></td></tr>';
+  });
+  h+='</tbody></table></div><p class="note" style="margin-top:12px">Rumus mengikuti Excel: target jalan = (jumlah sasaran × target ÷ 12) × nomor bulan; kesenjangan = kumulatif % − target jalan %.</p>';
+  return h;
+}
+var KAT=['','Man (SDM)','Method (cara/prosedur)','Material (bahan/data)','Machine (alat/jaringan)','Money (biaya)','Lingkungan/eksternal'];
+function subA(){
+  var m=S.month,o=M(),h='<div class="head" style="margin-bottom:12px"><div><h2>A · Analisis Masalah & Rencana Tindak Lanjut</h2><div class="sub" style="margin:0">Untuk kegiatan atau indikator yang belum mencapai target.</div></div><div class="tools"><button class="btn sm" data-act="autoIdent">Buat dari temuan bulan ini</button><button class="btn sm" data-act="addIdent">+ Baris</button></div></div>';
+  var tips=[];
+  o.rows.forEach(function(r){if(r.status==='belum'||r.status==='part')tips.push(r.nama)});
+  S.cfg.indikator.forEach(function(i){if(pkpCalc(m,i).st==='bad')tips.push('PKP: '+i.nama)});
+  if(tips.length)h+='<div class="note" style="margin-bottom:12px"><b>Perlu dianalisis ('+tips.length+'):</b> '+tips.map(esc).join('; ')+'</div>';
+  else h+='<div class="note" style="margin-bottom:12px">Tidak ada temuan yang butuh analisis bulan ini. Baris tetap bisa diisi bila ada hambatan lain.</div>';
+  if(!o.ident.length)return h+'<div class="empty"><b>Belum ada analisis</b>Gunakan “Buat dari temuan bulan ini” untuk menyiapkan baris otomatis.</div>';
+  o.ident.forEach(function(x,i){
+    var k='a'+m+'_'+i,b='m:ident.'+i+'.';
+    h+='<details class="rowcard" data-open="'+k+'" '+(S.open[k]!==false?'open':'')+'><summary><span class="n">'+(i+1)+'</span><span class="tt">'+esc(x.kegiatan||'(kegiatan / indikator)')+'<small>'+esc((x.masalah||'Masalah belum diisi').slice(0,100))+'</small></span><span class="pill '+(x.rtlStatus==='selesai'?'ok':x.rtlStatus==='berjalan'?'warn':'na')+'">'+({selesai:'Selesai',berjalan:'Berjalan'}[x.rtlStatus]||'Direncanakan')+'</span>'+CHEV+'</summary><div class="body"><div class="fgrid">'+
+      '<label class="f s2">Kegiatan / indikator<input type="text" data-b="'+b+'kegiatan" value="'+esc(x.kegiatan||'')+'" list="dlk"></label>'+
+      '<label class="f s2">Kategori penyebab<select data-b="'+b+'kat">'+KAT.map(function(k){return '<option'+(k===(x.kat||'')?' selected':'')+' value="'+esc(k)+'">'+(k||'— pilih —')+'</option>'}).join('')+'</select></label>'+
+      area('Identifikasi masalah / hambatan',b+'masalah',x.masalah,'s2')+area('Penyebab masalah',b+'penyebab',x.penyebab,'s2')+area('Rencana tindak lanjut',b+'rtl',x.rtl,'s4')+
+      fld('Penanggung jawab RTL',b+'pic',x.pic,'s2')+fld('Tenggat',b+'tenggat',x.tenggat,'','date')+
+      '<label class="f">Status RTL<select data-b="'+b+'rtlStatus">'+[['','Direncanakan'],['berjalan','Berjalan'],['selesai','Selesai']].map(function(s){return '<option value="'+s[0]+'"'+((x.rtlStatus||'')===s[0]?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></label>'+
+      '</div><div class="tools" style="margin-top:12px"><button class="btn sm danger" data-act="delIdent" data-i="'+i+'" data-confirm="1">Hapus baris</button></div></div></details>';
+  });
+  h+='<datalist id="dlk">'+S.cfg.kegiatan.map(function(k){return '<option value="'+esc(k.nama)+'">'}).join('')+S.cfg.indikator.map(function(k){return '<option value="'+esc('PKP: '+k.nama)+'">'}).join('')+'</datalist>';
+  return h;
+}
+
+/* ---------- RPK tahunan ---------- */
+function tahun(){
+  var c=S.cfg,h='<div class="head"><div><h2 class="big">RPK Tahunan '+c.tahun+'</h2><span class="muted">Daftar kegiatan program, target setahun, dan jadwal tiap bulan.</span></div></div>';
+  h+='<div class="card"><h2>Jadwal & status per bulan</h2><div class="sub">Isi sel diambil dari RPK bulanan; warna menunjukkan hasil evaluasi.</div><div class="tw"><table class="mx"><thead><tr><th>Kegiatan</th>'+BS.map(function(b){return '<th>'+b+'</th>'}).join('')+'</tr></thead><tbody>';
+  c.kegiatan.forEach(function(k){
+    h+='<tr><td style="min-width:170px;font-weight:600">'+esc(k.nama)+'</td>';
+    for(var m=1;m<=12;m++){
+      var r=S.months[m].rows.filter(function(x){return x.kid===k.id})[0];
+      if(!r)h+='<td class="c zz">·</td>';
+      else h+='<td class="c '+(r.status||'pl')+'" data-go="'+m+':p" style="cursor:pointer" data-tip="'+esc(BL[m-1]+' · '+(r.jadwal||'jadwal belum diisi')+(r.status?' — '+STAT[r.status]:''))+'">'+esc((r.jadwal||'—').slice(0,22))+'</td>';
+    }
+    h+='</tr>';
+  });
+  h+='</tbody></table></div></div>';
+  h+='<div class="card"><h2>Volume: rencana, realisasi, dan target tahunan</h2><div class="sub">Dihitung dari angka “target jumlah” dan “realisasi” di RPK serta evaluasi bulanan.</div>';
+  var any=false;
+  c.kegiatan.forEach(function(k){
+    if(!k.targetTahun)return;any=true;
+    var plan=0,real=0;
+    for(var m=1;m<=12;m++)S.months[m].rows.forEach(function(r){if(r.kid===k.id){plan+=+r.targetN||0;real+=+r.realN||0}});
+    var T=+k.targetTahun,w=Math.min(100,real/T*100),pw=Math.min(100,plan/T*100);
+    h+='<div class="ind" style="grid-template-columns:minmax(0,1fr)"><div class="t"><span>'+esc(k.nama)+'</span><span class="num muted" style="font-weight:600">Target '+nf(T)+' '+esc(k.satuan||'')+'</span></div><div class="bullet" data-tip="'+esc(k.nama+': realisasi '+nf(real)+', rencana '+nf(plan)+', target tahun '+nf(T))+'"><div class="f" style="width:'+w+'%"></div><div class="m" style="left:'+pw+'%"></div></div><div class="d num"><span>Realisasi <b>'+nf(real)+'</b> ('+pct(real/T)+')</span><span>Rencana terjadwal <b>'+nf(plan)+'</b> (garis tebal)</span><span>Sisa target <b>'+nf(Math.max(0,T-real))+'</b></span></div></div>';
+  });
+  if(!any)h+='<div class="empty"><b>Belum ada target tahunan</b>Isi “Target setahun” pada kegiatan di bawah.</div>';
+  h+='</div>';
+  h+='<div class="card" data-w><div class="head" style="margin-bottom:12px"><div><h2>Daftar kegiatan program</h2><div class="sub" style="margin:0">Dipakai sebagai templat saat membuat RPK bulanan.</div></div><button class="btn sm" data-act="addKeg">+ Kegiatan</button></div>';
+  c.kegiatan.forEach(function(k,i){
+    var key='k'+i,b='c:kegiatan.'+i+'.';
+    h+='<details class="rowcard" data-open="'+key+'" '+(S.open[key]?'open':'')+'><summary><span class="n">'+(i+1)+'</span><span class="tt">'+esc(k.nama||'(kegiatan baru)')+'<small>'+esc([k.targetTahun?('Target '+k.targetTahun+' '+(k.satuan||'')):'Sesuai kasus',k.volume].filter(Boolean).join(' · '))+'</small></span>'+CHEV+'</summary><div class="body"><div class="fgrid">'+
+     fld('Nama kegiatan',b+'nama',k.nama,'s2')+fld('Penanggung jawab',b+'pj',k.pj,'s2')+area('Tujuan',b+'tujuan',k.tujuan,'s4')+
+     fld('Sasaran',b+'sasaran',k.sasaran)+fld('Volume per bulan',b+'volume',k.volume)+fld('Target setahun (angka)',b+'targetTahun',k.targetTahun,'','number','kosong = sesuai kasus')+fld('Satuan',b+'satuan',k.satuan)+
+     fld('Lokasi',b+'lokasi',k.lokasi,'s2')+fld('Metode',b+'metode',k.metode,'s2')+fld('Rincian pelaksanaan',b+'rincian',k.rincian,'s4')+
+     '</div><div class="tools" style="margin-top:12px"><button class="btn sm danger" data-act="delKeg" data-i="'+i+'" data-confirm="1">Hapus dari daftar</button></div></div></details>';
+  });
+  return h+'</div>';
+}
+
+/* ---------- cetak ---------- */
+function cetak(){
+  var m=S.month,docs=[['d','Evaluasi Kegiatan','Tabel evaluasi + tanda tangan'],['k','Dokumentasi','Foto kegiatan bulan ini'],['c','Monitoring Capaian (PKP)','Indikator & kesenjangan'],['a','Analisis & RTL','Masalah, penyebab, tindak lanjut'],['p','RPK Bulanan','Rencana pelaksanaan kegiatan']];
+  var h='<div class="head"><div><h2 class="big">Cetak / Simpan PDF</h2><span class="muted">PDF disusun ulang dari data, kertas A4 lanskap, lengkap dengan kolom tanda tangan.</span></div></div>'+monthStrip();
+  h+='<div class="card"><h2>PDCA '+BL[m-1]+' '+S.cfg.tahun+'</h2><div class="sub">Pilih dokumen yang ingin dimasukkan.</div><div class="docs">'+docs.map(function(d){return '<label class="dchk"><input type="checkbox" data-sel="'+d[0]+'" '+(S.sel[d[0]]?'checked':'')+'><span><b>'+d[1]+'</b><span>'+d[2]+'</span></span></label>'}).join('')+'</div>'+
+    '<div class="tools" style="margin-top:16px"><button class="btn pri" data-act="pdfSel">Unduh PDF '+BL[m-1]+'</button><button class="btn" data-act="pdfYear">Unduh rekap tahunan</button></div>'+
+    '<p class="note" style="margin-top:14px">Untuk mencetak ke kertas: unduh PDF, buka dengan aplikasi PDF di perangkat Anda, lalu pilih Cetak. Tombol cetak langsung tidak bisa dipakai di dalam halaman ini.</p></div>';
+  return h;
+}
+
+/* ---------- pengaturan ---------- */
+function settings(){
+  var c=S.cfg,h='<div class="head"><div><h2 class="big">Pengaturan</h2><span class="muted">Identitas program, penanda tangan, dan indikator PKP.</span></div></div>';
+  h+='<div class="card" data-w><h2>Program & tanda tangan</h2><div class="sub">Dipakai di kop dan kolom tanda tangan PDF. Nama program bisa diganti untuk program lain.</div><div class="fgrid">'+
+   fld('Nama program','c:program',c.program,'s2')+fld('Puskesmas','c:puskesmas',c.puskesmas,'s2')+fld('Tahun','c:tahun',c.tahun,'','number')+fld('Jabatan penanggung jawab','c:pjJabatan',c.pjJabatan,'s2')+
+   fld('Penanggung jawab program','c:pj',c.pj,'s2')+fld('NIP penanggung jawab','c:pjNip',c.pjNip,'s2')+
+   fld('Jabatan yang mengetahui','c:kapusJabatan',c.kapusJabatan,'s2')+fld('Nama yang mengetahui','c:kapus',c.kapus,'s2')+fld('NIP yang mengetahui','c:kapusNip',c.kapusNip,'s2')+'</div></div>';
+  h+='<div class="card" data-w><div class="head" style="margin-bottom:12px"><div><h2>Indikator PKP</h2><div class="sub" style="margin:0">Target dalam persen (mis. 90 untuk 90%). Jumlah sasaran adalah sasaran setahun.</div></div><button class="btn sm" data-act="addInd">+ Indikator</button></div>';
+  h+='<div class="tw"><table><thead><tr><th>Indikator</th><th class="r">Target %</th><th>Satuan</th><th class="r">Jumlah sasaran</th><th></th></tr></thead><tbody>'+c.indikator.map(function(i,k){
+    return '<tr><td style="min-width:260px"><input type="text" data-b="c:indikator.'+k+'.nama" value="'+esc(i.nama)+'" aria-label="Nama indikator"></td><td class="r"><input type="number" step="any" data-b="c:indikator.'+k+'.targetPct" value="'+esc(Math.round((+i.target||0)*1000)/10)+'" aria-label="Target persen"></td><td><input type="text" data-b="c:indikator.'+k+'.satuan" value="'+esc(i.satuan)+'" style="width:110px" aria-label="Satuan"></td><td class="r"><input type="number" step="any" data-b="c:indikator.'+k+'.sasaran" value="'+esc(i.sasaran)+'" aria-label="Jumlah sasaran"></td><td><button class="btn sm danger" data-act="delInd" data-i="'+k+'" data-confirm="1">Hapus</button></td></tr>';
+  }).join('')+'</tbody></table></div></div>';
+  h+='<div class="card"><h2>Data & cadangan</h2><div class="sub">Unduh cadangan JSON, pulihkan dari cadangan, atau muat ulang data awal dari Excel.</div><div class="tools"><button class="btn" data-act="exportJson">Unduh cadangan (.json)</button><label class="btn" data-w>Pulihkan dari cadangan<input type="file" id="jsonIn" accept="application/json,.json" hidden></label><button class="btn" data-act="sync">Muat ulang dari penyimpanan</button><button class="btn danger" data-act="seed" data-confirm="1" data-w>Ganti dengan data awal Excel</button></div><p class="muted" style="font-size:12px;margin:12px 0 0">Penyimpanan: '+(S.mode==='db'?'bersama (dapat dilihat dan diisi pengguna lain yang diberi akses ke halaman ini)':'hanya di browser perangkat ini')+'.</p></div>';
+  return h;
+}
+
+/* ---------- aksi ---------- */
+function setPath(obj,path,val){
+  var p=path.split('.'),o=obj;
+  for(var i=0;i<p.length-1;i++){o=o[p[i]];if(o==null)return}
+  o[p[p.length-1]]=val;
+}
+function onInput(el){
+  var spec=el.getAttribute('data-b');if(!spec)return;
+  var i=spec.indexOf(':'),sc=spec.slice(0,i),path=spec.slice(i+1),val=el.value;
+  if(el.type==='number')val=(val===''?null:+val);
+  if(sc==='m'){setPath(M(),path,val);queue('m',S.month);afterEdit(path)}
+  else if(sc==='c'){
+    var mm=path.match(/^indikator\.(\d+)\.targetPct$/);
+    if(mm){S.cfg.indikator[+mm[1]].target=(val||0)/100}
+    else{if(path==='tahun')val=val||NOW.getFullYear();setPath(S.cfg,path,val)}
+    queue('cfg');if(/^(program|puskesmas|tahun)$/.test(path)){var h=$('.brand');if(h)h.querySelector('h1').textContent='PDCA Program '+S.cfg.program;if(h)h.querySelector('small').textContent=S.cfg.puskesmas+' · Tahun '+S.cfg.tahun}
+  }
+  else if(sc==='f'){
+    var q=path.split('.'),id=q[0],f=fotoList(S.month).filter(function(x){return x.id===id})[0];
+    if(f){f[q[1]]=val;qf(f)}
+  }
+}
+function qf(f){var k='foto'+f.id;clearTimeout(timers[k]);setSave('busy');timers[k]=setTimeout(function(){put('foto',f.id,f).then(function(){setSave('ok')}).catch(function(e){setSave('err',(e&&e.message||'').slice(0,60))})},650)}
+function afterEdit(path){
+  // pembaruan ringan tanpa render ulang agar fokus tidak hilang
+  if(/^pkp\./.test(path)){
+    var tr=$('tr[data-ind="'+path.slice(4)+'"]');
+    var ind=S.cfg.indikator.filter(function(x){return x.id===path.slice(4)})[0];
+    if(tr&&ind){var r=pkpCalc(S.month,ind);tr.querySelector('[data-k]').textContent=nf(r.K);tr.querySelector('[data-l]').textContent=pct(r.L);tr.querySelector('[data-mg]').textContent=r.E?(r.M>=0?'+':'')+(r.M*100).toFixed(1).replace('.',',')+'%':'—';tr.querySelector('[data-st]').innerHTML='<span class="pill '+(r.st==='nosasaran'?'na':r.st)+'">'+pkpLabel(r.st)+'</span>'}
+  }
+  var rr=path.match(/^rows\.(\d+)\.(realN|targetN)$/);
+  if(rr){var el=$('#rp'+rr[1]);var row=M().rows[+rr[1]];if(el)el.textContent=rowPct(row)!=null?'Capaian '+rowPct(row)+'%':''}
+  refreshStrip();
+}
+function refreshStrip(){
+  $$('.mbtn').forEach(function(b){var m=+b.dataset.m,ck=check(m);var old=b.querySelector('svg');if(old){var t=document.createElement('div');t.innerHTML=ring(ck.pct,22);old.replaceWith(t.firstChild)}});
+  $$('.step').forEach(function(b){var k=b.dataset.sub,ck=check(S.month);var has=b.querySelector('.ck');if(ck[k]&&!has)b.insertAdjacentHTML('beforeend','<span class="ck">'+CK+'</span>');if(!ck[k]&&has)has.remove()});
+}
+function newRow(k){
+  k=k||{};
+  return {kid:k.id||uid('k'),nama:k.nama||'',tujuan:k.tujuan||'',sasaran:k.sasaran||'',targetSasaran:'',pj:k.pj||'',volume:k.volume||'',jadwal:'',rincian:k.rincian||'',lokasi:k.lokasi||'',bok:'',jkn:'',dau:'',lain:'-',eTarget:k.sasaran||'',eSasaran:'',eLokasi:k.lokasi||'',eWaktu:'',ePelaksana:S.cfg.pj?S.cfg.pj.split(',')[0]:'',eMetode:k.metode||'',status:'',alasan:'',targetN:(/^(\d+)\s*kali/.exec(k.volume||'')||[])[1]?+(/^(\d+)/.exec(k.volume)[1]):null,realN:null};
+}
+function act(a,el){
+  var m=S.month,o=S.months[m];
+  switch(a){
+    case 'theme':{var cur=document.documentElement.getAttribute('data-theme');var dark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;var nx=dark?'light':'dark';document.documentElement.setAttribute('data-theme',nx);try{localStorage.setItem('pdca26:theme',nx)}catch(e){}return}
+    case 'seed':if(!SEED)return;S.cfg=clone(SEED.cfg);S.months={};for(var i=1;i<=12;i++)S.months[i]=clone(SEED.months[i]);normalize();
+      Promise.all([put('pdca','cfg',S.cfg)].concat([1,2,3,4,5,6,7,8,9,10,11,12].map(function(i){return put('pdca','m'+i,S.months[i])}))).then(function(){setSave('ok');toast('Data awal dimuat')}).catch(function(e){setSave('err',(e&&e.message||'').slice(0,60))});
+      S.month=latestEval();S.tab='dash';S.loaded=true;render(false);return;
+    case 'blank':S.cfg={program:'NAMA PROGRAM',puskesmas:'NAMA PUSKESMAS',tahun:NOW.getFullYear(),pj:'',pjNip:'',pjJabatan:'PENANGGUNG JAWAB',kapus:'',kapusNip:'',kapusJabatan:'KEPALA PUSKESMAS',kegiatan:[],indikator:[]};S.months={};normalize();put('pdca','cfg',S.cfg);S.tab='set';render(false);return;
+    case 'addRow':{var r=newRow();var nm=r.kid;o.rows.push(r);S.open['p'+m+'_'+(o.rows.length-1)]=true;break}
+    case 'delRow':o.rows.splice(+el.dataset.i,1);break;
+    case 'fromMaster':{var have={};o.rows.forEach(function(r){have[r.kid]=1});var add=0;S.cfg.kegiatan.forEach(function(k){if(!have[k.id]){var r=newRow(k);r.jadwal=BL[m-1];o.rows.push(r);add++}});toast(add?add+' kegiatan ditambahkan':'Semua kegiatan sudah ada');break}
+    case 'copyPrev':{var pr=S.months[m-1].rows;if(!pr.length){toast('RPK bulan lalu kosong');return}var mn={Januari:BL[m-1]};o.rows=pr.map(function(r){var x=clone(r);x.status='';x.alasan='';x.realN=null;x.eWaktu='';x.jadwal=BL[m-1];x.targetSasaran=r.targetSasaran;return x});toast('RPK disalin dari '+BL[m-2]+'. Periksa jadwalnya.');break}
+    case 'setSt':{var r2=o.rows[+el.dataset.i],v=el.dataset.v;r2.status=(r2.status===v?'':v);if(r2.status==='ok'&&r2.targetN)r2.realN=r2.targetN;if(r2.status==='belum')r2.realN=0;break}
+    case 'allOk':o.rows.forEach(function(r){if(!r.status){r.status='ok';if(r.targetN)r.realN=r.targetN}});break;
+    case 'fillEval':o.rows.forEach(function(r){if(!r.eTarget)r.eTarget=r.sasaran;if(!r.eLokasi)r.eLokasi=r.lokasi;if(!r.eWaktu)r.eWaktu=r.jadwal;if(!r.ePelaksana)r.ePelaksana=(S.cfg.pj||'').split(',')[0];if(!r.eMetode)r.eMetode='Online'});toast('Kolom evaluasi dilengkapi dari RPK');break;
+    case 'addIdent':o.ident.push({kegiatan:'',masalah:'',penyebab:'',kat:'',rtl:'',pic:'',tenggat:'',rtlStatus:''});S.open['a'+m+'_'+(o.ident.length-1)]=true;break;
+    case 'delIdent':o.ident.splice(+el.dataset.i,1);break;
+    case 'autoIdent':{var cnt=0,have2=o.ident.map(function(x){return x.kegiatan});
+      o.rows.forEach(function(r){if((r.status==='belum'||r.status==='part')&&have2.indexOf(r.nama)<0){o.ident.push({kegiatan:r.nama,masalah:r.alasan||'',penyebab:'',kat:'',rtl:'',pic:'',tenggat:'',rtlStatus:''});cnt++}});
+      S.cfg.indikator.forEach(function(i){var nm='PKP: '+i.nama;if(pkpCalc(m,i).st==='bad'&&have2.indexOf(nm)<0){o.ident.push({kegiatan:nm,masalah:'Capaian kumulatif di bawah target jalan',penyebab:'',kat:'',rtl:'',pic:'',tenggat:'',rtlStatus:''});cnt++}});
+      toast(cnt?cnt+' baris dibuat':'Tidak ada temuan baru');break}
+    case 'addKeg':S.cfg.kegiatan.push({id:uid('k'),nama:'',tujuan:'',sasaran:'',pj:'KP. '+S.cfg.program,volume:'',rincian:'',lokasi:'',metode:'Online',targetTahun:null,satuan:''});S.open['k'+(S.cfg.kegiatan.length-1)]=true;queue('cfg');render();return;
+    case 'delKeg':S.cfg.kegiatan.splice(+el.dataset.i,1);queue('cfg');render();return;
+    case 'addInd':S.cfg.indikator.push({id:uid('i'),nama:'Indikator baru',target:.8,satuan:'dokumen',sasaran:0});queue('cfg');render();return;
+    case 'delInd':S.cfg.indikator.splice(+el.dataset.i,1);queue('cfg');render();return;
+    case 'delFoto':{var id=el.dataset.id;S.foto[m]=fotoList(m).filter(function(x){return x.id!==id});o.nfoto=S.foto[m].length;del('foto',id).catch(function(){});queue('m',m);render();return}
+    case 'pdfMonth':pdf(m,['d','k','c','a','p']);return;
+    case 'pdfSel':pdf(m,['d','k','c','a','p'].filter(function(k){return S.sel[k]}));return;
+    case 'pdfYear':pdfYear();return;
+    case 'exportJson':saveFile('PDCA_'+S.cfg.program+'_'+S.cfg.tahun+'.json',JSON.stringify({cfg:S.cfg,months:S.months},null,1),'application/json');return;
+    case 'sync':S.loaded=false;render();S.cfg=null;S.months={};loadAll().then(function(){normalize();S.loaded=true;render();toast('Data dimuat ulang')});return;
+  }
+  queue('m',m);render();
+}
+function saveFile(name,data,type){
+  var blob=data instanceof Blob?data:new Blob([data],{type:type||'application/octet-stream'});
+  if(!DL){
+    // dibuka sebagai file HTML biasa: unduh lewat tautan langsung
+    try{
+      var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(u)},60000);toast('File diunduh: '+name);
+    }catch(e){toast('Unduh gagal di tampilan ini. Buka halaman lewat browser biasa.')}
+    return Promise.resolve();
+  }
+  return DL.save({filename:name,data:blob}).then(function(){toast('File disiapkan: '+name)}).catch(function(e){if(e&&e.code==='declined')return;toast('Gagal mengunduh'+(e&&e.message?': '+e.message:''))});
+}
+
+/* ---------- foto ---------- */
+function ensureFoto(m){
+  if(S.fotoLoaded[m])return;
+  var done=function(list){S.foto[m]=list;S.fotoLoaded[m]=true;if(S.tab==='bulan'&&S.sub==='k'&&S.month===m)render()};
+  if(DB)DB.collection('foto').where('bulan','==',m).get().then(function(s){done(s.docs.map(function(d){return d.data()}))}).catch(function(){done([])});
+  else{var idx=JSON.parse(lget('pdca26:fotoidx:'+m)||'[]');done(idx.map(function(id){var x=lget('pdca26:foto:'+id);return x?JSON.parse(x):null}).filter(Boolean))}
+}
+function compress(file){
+  return new Promise(function(res,rej){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){
+      var max=960,q=[.72,.6,.5,.4,.3],out;
+      for(var pass=0;pass<3;pass++){
+        var sc=Math.min(1,max/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc),cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);
+        for(var i=0;i<q.length;i++){out=cv.toDataURL('image/jpeg',q[i]);if(out.length<185000){URL.revokeObjectURL(url);return res({data:out,w:w,h:h})}}
+        max=Math.round(max*.75);
+      }
+      URL.revokeObjectURL(url);rej(new Error('Foto terlalu besar'));
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);rej(new Error('Format foto tidak bisa dibuka'))};
+    img.src=url;
+  });
+}
+function addFiles(files){
+  if(S.ro)return;
+  var m=S.month,arr=Array.prototype.slice.call(files).filter(function(f){return /^image\//.test(f.type)});
+  if(!arr.length){toast('Pilih file gambar');return}
+  setSave('busy');
+  arr.reduce(function(p,f){return p.then(function(){return compress(f).then(function(c){
+    var rec={id:uid('f'),bulan:m,kegiatan:'',tanggal:'',tempat:S.cfg.puskesmas?('Puskesmas '+S.cfg.puskesmas.replace(/^PUSKESMAS\s*/i,'').toLowerCase().replace(/\b\w/g,function(x){return x.toUpperCase()})):'',ket:'',w:c.w,h:c.h,data:c.data};
+    return put('foto',rec.id,rec).then(function(){
+      S.foto[m]=fotoList(m).concat([rec]);S.fotoLoaded[m]=true;S.months[m].nfoto=S.foto[m].length;
+      if(!DB){var k='pdca26:fotoidx:'+m,idx=JSON.parse(lget(k)||'[]');idx.push(rec.id);lset(k,JSON.stringify(idx))}
+    });
+  }).catch(function(e){toast((f.name||'Foto')+': '+(e&&e.message||'gagal'))})})},Promise.resolve()).then(function(){queue('m',m);setSave('ok');render()});
+}
+
+/* ---------- PDF ---------- */
+function fd(s){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');return m?m[3]+'/'+m[2]+'/'+m[1]:(s||'')}
+function san(s){return String(s==null?'':s).replace(/[≤]/g,'<=').replace(/[≥]/g,'>=').replace(/[–—]/g,'-').replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/[^\x09\x0A\x20-\x7E -ÿ]/g,'')}
+function pdfLib(){return window.jspdf&&window.jspdf.jsPDF}
+function buildDoc(m,keys){
+  var J=pdfLib();if(!J)throw new Error('Pustaka PDF belum termuat');
+  var doc=new J({orientation:'landscape',unit:'mm',format:'a4'}),W=297,c=S.cfg,o=S.months[m],first=true;
+  function head(title,month){
+    if(!first)doc.addPage();first=false;
+    doc.setTextColor(20);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(san(title),W/2,14,{align:'center'});
+    doc.setFontSize(10);var L=[['PROGRAM',c.program],['BULAN',month],['TAHUN',c.tahun]];
+    L.forEach(function(l,i){doc.setFont('helvetica','bold');doc.text(l[0],12,23+i*5.2);doc.setFont('helvetica','normal');doc.text(': '+san(l[1]),36,23+i*5.2)});
+    doc.setFontSize(8);doc.setTextColor(110);doc.text(san(c.puskesmas),W-10,12,{align:'right'});doc.setTextColor(20);
+    return 40;
+  }
+  function sign(){
+    var y=doc.lastAutoTable?doc.lastAutoTable.finalY+8:60;
+    if(y>210-46){doc.addPage();y=20}
+    doc.setFontSize(10);doc.setFont('helvetica','normal');
+    var lx=55,rx=W-65;
+    doc.text('Mengetahui,',lx,y,{align:'center'});doc.text(san(c.kapusJabatan||''),lx,y+5,{align:'center'});
+    doc.text(san(c.pjJabatan||'PENANGGUNG JAWAB'),rx,y+5,{align:'center'});doc.text(san(c.program),rx,y+10,{align:'center'});
+    doc.setFont('helvetica','bold');doc.text(san(c.kapus||''),lx,y+30,{align:'center'});doc.text(san(c.pj||''),rx,y+30,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(san(c.kapusNip||''),lx,y+35,{align:'center'});doc.text(san(c.pjNip||''),rx,y+35,{align:'center'});
+  }
+  var sty={fontSize:8,cellPadding:1.6,lineColor:[110,110,110],lineWidth:.15,textColor:20,valign:'middle',overflow:'linebreak'};
+  var hs={fillColor:[222,235,238],textColor:20,halign:'center',fontStyle:'bold',valign:'middle'};
+  function tbl(opts){doc.autoTable(Object.assign({theme:'grid',styles:sty,headStyles:hs,margin:{left:10,right:10}},opts))}
+  var mn=BL[m-1].toUpperCase();
+  keys.forEach(function(k){
+    if(k==='d'){
+      var y=head('EVALUASI KEGIATAN PROGRAM',mn);
+      tbl({startY:y,head:[[{content:'NO',rowSpan:2},{content:'JENIS KEGIATAN',rowSpan:2},{content:'TARGET',rowSpan:2},{content:'SASARAN',rowSpan:2},{content:'LOKASI',rowSpan:2},{content:'WAKTU',rowSpan:2},{content:'PELAKSANA',rowSpan:2},{content:'METODE',rowSpan:2},{content:'EVALUASI',colSpan:2},{content:'*ALASAN BELUM TERLAKSANA',rowSpan:2}],[{content:'TERLAKSANA'},{content:'*BELUM TERLAKSANA'}]],
+        body:o.rows.map(function(r,i){var ok=r.status==='ok';return [i+1,san(r.nama),san(r.eTarget),san(r.eSasaran),san(r.eLokasi),san(r.eWaktu),san(r.ePelaksana),san(r.eMetode),ok?'V':'',(r.status==='belum'||r.status==='na')?'V':(r.status==='part'?'Sebagian':''),san(r.alasan)]}),
+        columnStyles:{0:{halign:'center',cellWidth:9},1:{cellWidth:62},8:{halign:'center',cellWidth:22},9:{halign:'center',cellWidth:24}}});
+      sign();
+    }else if(k==='k'){
+      var y2=head('DOKUMENTASI KEGIATAN PROGRAM',mn),list=fotoList(m);
+      if(!list.length){doc.setFontSize(10);doc.setTextColor(120);doc.text('Belum ada foto dokumentasi.',12,y2+4);doc.setTextColor(20);return}
+      var bw=132,bh=64,gx=12,top=y2;
+      list.forEach(function(f,i){
+        var pos=i%4;if(i>0&&pos===0){head('DOKUMENTASI KEGIATAN PROGRAM',mn)}
+        var col=pos%2,row=Math.floor(pos/2),x=gx+col*(bw+10),y=top+row*(bh+19);
+        doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text('KEGIATAN : '+san(f.kegiatan||'...................'),x,y,{maxWidth:bw});
+        doc.setFont('helvetica','normal');doc.text('TANGGAL : '+san(fd(f.tanggal)||'...................'),x,y+5);doc.text('TEMPAT : '+san(f.tempat||'...................'),x,y+10,{maxWidth:bw});
+        doc.setDrawColor(120);doc.rect(x,y+13,bw,bh);
+        var sc=Math.min(bw/(f.w||4),bh/(f.h||3)),iw=(f.w||4)*sc,ih=(f.h||3)*sc;
+        try{doc.addImage(f.data,'JPEG',x+(bw-iw)/2,y+13+(bh-ih)/2,iw,ih)}catch(e){}
+      });
+    }else if(k==='c'){
+      var y3=head('MONITORING EVALUASI KEGIATAN (PENILAIAN KINERJA)',mn);
+      tbl({startY:y3,styles:Object.assign({},sty,{fontSize:7.5}),head:[[{content:'NO',rowSpan:2},{content:'JENIS KEGIATAN',rowSpan:2},{content:'TARGET',rowSpan:2},{content:'SASARAN',rowSpan:2},{content:'JUMLAH SASARAN',rowSpan:2},{content:'JUMLAH TARGET SASARAN',rowSpan:2},{content:'TARGET JALAN',colSpan:2},{content:'CAKUPAN',colSpan:2},{content:'KOMULATIF',colSpan:2},{content:'KESENJANGAN',rowSpan:2},{content:'KETERANGAN',rowSpan:2}],['ABS','%','BULAN INI','BULAN LALU','ABS','%']],
+        body:S.cfg.indikator.map(function(ind,i){var r=pkpCalc(m,ind);return [i+1,san(ind.nama),pct(r.C,0),san(ind.satuan),nf(r.E),nf(r.F),nf(r.G),pct(r.H),r.I==null?'':nf(r.I),nf(r.J),nf(r.K),pct(r.L),r.E?((r.M>=0?'+':'')+(r.M*100).toFixed(1).replace('.',',')+'%'):'-',san(pkpLabel(r.st))]}),
+        columnStyles:{0:{halign:'center',cellWidth:8},1:{cellWidth:62}}});
+      sign();
+    }else if(k==='a'){
+      var y4=head('ANALISA MASALAH PENCAPAIAN INDIKATOR DAN RENCANA TINDAK LANJUT PROGRAM',mn),rows=o.ident.map(function(x,i){return [i+1,san(x.kegiatan),san(x.masalah),san((x.kat?'['+x.kat.split(' ')[0]+'] ':'')+(x.penyebab||'')),san(x.rtl),san([x.pic,fd(x.tenggat)].filter(Boolean).join(' / '))]});
+      while(rows.length<6)rows.push([rows.length+1,'','','','','']);
+      tbl({startY:y4,head:[['NO','KEGIATAN','IDENTIFIKASI MASALAH / HAMBATAN','PENYEBAB MASALAH','RENCANA TINDAK LANJUT','PIC / TENGGAT']],body:rows,columnStyles:{0:{halign:'center',cellWidth:9},1:{cellWidth:48},5:{cellWidth:34}},styles:Object.assign({},sty,{minCellHeight:9})});
+      sign();
+    }else if(k==='p'){
+      var y5=head('RENCANA PELAKSANAAN KEGIATAN PROGRAM',mn);
+      tbl({startY:y5,styles:Object.assign({},sty,{fontSize:6.8,cellPadding:1.2}),head:[[{content:'NO.',rowSpan:2},{content:'KEGIATAN',rowSpan:2},{content:'TUJUAN',rowSpan:2},{content:'SASARAN',rowSpan:2},{content:'TARGET SASARAN',rowSpan:2},{content:'PENANGGUNG JAWAB',rowSpan:2},{content:'VOLUME KEGIATAN',rowSpan:2},{content:'JADWAL',rowSpan:2},{content:'RINCIAN PELAKSANAAN',rowSpan:2},{content:'LOKASI KEGIATAN',rowSpan:2},{content:'BIAYA',colSpan:4}],['BOK','JKN','DAU','LAIN-LAIN']],
+        body:o.rows.map(function(r,i){return [i+1,san(r.nama),san(r.tujuan),san(r.sasaran),san(r.targetSasaran),san(r.pj),san(r.volume),san(r.jadwal),san(r.rincian),san(r.lokasi),san(r.bok),san(r.jkn),san(r.dau),san(r.lain)]}),
+        columnStyles:{0:{halign:'center',cellWidth:7},1:{cellWidth:30},2:{cellWidth:50}}});
+      sign();
+    }
+  });
+  return doc;
+}
+function pdf(m,keys){
+  if(!keys.length){toast('Pilih minimal satu dokumen');return}
+  toast('Menyusun PDF…');
+  var need=keys.indexOf('k')>=0&&!S.fotoLoaded[m];
+  var go=function(){
+    try{
+      var doc=buildDoc(m,keys);
+      saveFile('PDCA_'+S.cfg.program.replace(/\s+/g,'_')+'_'+BL[m-1]+'_'+S.cfg.tahun+'.pdf',doc.output('blob'),'application/pdf');
+    }catch(e){toast('Gagal membuat PDF: '+(e&&e.message||e))}
+  };
+  if(need){S.fotoLoaded[m]=false;ensureFotoThen(m,go)}else go();
+}
+function ensureFotoThen(m,cb){
+  var done=function(list){S.foto[m]=list;S.fotoLoaded[m]=true;cb()};
+  if(DB)DB.collection('foto').where('bulan','==',m).get().then(function(s){done(s.docs.map(function(d){return d.data()}))}).catch(function(){done([])});
+  else{var idx=JSON.parse(lget('pdca26:fotoidx:'+m)||'[]');done(idx.map(function(id){var x=lget('pdca26:foto:'+id);return x?JSON.parse(x):null}).filter(Boolean))}
+}
+function pdfYear(){
+  try{
+    var J=pdfLib(),doc=new J({orientation:'landscape',unit:'mm',format:'a4'}),c=S.cfg,W=297;
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('REKAPITULASI PELAKSANAAN KEGIATAN TAHUN '+c.tahun,W/2,14,{align:'center'});
+    doc.setFontSize(10);doc.text('PROGRAM : '+san(c.program),12,22);doc.setFont('helvetica','normal');doc.text(san(c.puskesmas),W-10,22,{align:'right'});
+    var sty={fontSize:8,cellPadding:1.6,lineColor:[110,110,110],lineWidth:.15,textColor:20,valign:'middle',halign:'center'},hs={fillColor:[222,235,238],textColor:20,fontStyle:'bold',halign:'center'};
+    var body=c.kegiatan.map(function(k,i){var row=[i+1,san(k.nama)];for(var m=1;m<=12;m++){var r=S.months[m].rows.filter(function(x){return x.kid===k.id})[0];row.push(!r?'':({ok:'V',part:'S',belum:'X',na:'-'}[r.status]||'o'))}return row});
+    doc.autoTable({startY:27,theme:'grid',styles:sty,headStyles:hs,margin:{left:10,right:10},head:[['NO','KEGIATAN'].concat(BS)],body:body,columnStyles:{1:{halign:'left',cellWidth:90}}});
+    var y=doc.lastAutoTable.finalY+4;doc.setFontSize(8);doc.text('V = terlaksana   S = sebagian   X = belum terlaksana   - = tidak ada kasus   o = direncanakan, belum dievaluasi',12,y);
+    var due=Math.max(1,latestEval());
+    doc.autoTable({startY:y+6,theme:'grid',styles:Object.assign({},sty,{halign:'right'}),headStyles:hs,margin:{left:10,right:10},head:[['INDIKATOR PKP','TARGET','JML SASARAN','KUMULATIF '+BS[due-1].toUpperCase(),'%','TARGET JALAN %','KETERANGAN']],
+      body:c.indikator.map(function(i){var r=pkpCalc(due,i);return [san(i.nama),pct(r.C,0),nf(r.E),nf(r.K),pct(r.L),pct(r.H),san(pkpLabel(r.st))]}),columnStyles:{0:{halign:'left',cellWidth:100},6:{halign:'left'}}});
+    saveFile('Rekap_PDCA_'+c.program.replace(/\s+/g,'_')+'_'+c.tahun+'.pdf',doc.output('blob'),'application/pdf');
+  }catch(e){toast('Gagal membuat PDF: '+(e&&e.message||e))}
+}
+
+/* ---------- impor json ---------- */
+function importJson(file){
+  var rd=new FileReader();
+  rd.onload=function(){try{
+    var d=JSON.parse(rd.result);if(!d.cfg||!d.months)throw new Error('Format cadangan tidak dikenal');
+    S.cfg=d.cfg;S.months={};for(var i=1;i<=12;i++)S.months[i]=d.months[i]||{};normalize();
+    Promise.all([put('pdca','cfg',S.cfg)].concat([1,2,3,4,5,6,7,8,9,10,11,12].map(function(i){return put('pdca','m'+i,S.months[i])}))).then(function(){setSave('ok');toast('Cadangan dipulihkan');render()});
+  }catch(e){toast('Gagal memulihkan: '+e.message)}};
+  rd.readAsText(file);
+}
+
+/* ---------- events ---------- */
+var armed=null;
+document.addEventListener('click',function(ev){
+  var t=ev.target.closest('[data-m],[data-tab],[data-sub],[data-act],[data-go]');
+  if(!t){return}
+  if(t.dataset.act){
+    if(t.dataset.confirm&&armed!==t){
+      if(armed){armed.classList.remove('armed');armed.textContent=armed.dataset.lbl}
+      armed=t;t.dataset.lbl=t.textContent;t.textContent='Klik lagi untuk menghapus';t.classList.add('armed');
+      setTimeout(function(){if(armed===t){t.classList.remove('armed');t.textContent=t.dataset.lbl;armed=null}},3200);return;
+    }
+    armed=null;act(t.dataset.act,t);return;
+  }
+  if(t.dataset.go){var g=t.dataset.go.split(':');S.month=+g[0];S.tab='bulan';S.sub=g[1];render(false);window.scrollTo(0,0);return}
+  if(t.dataset.tab){S.tab=t.dataset.tab;render(false);window.scrollTo(0,0);return}
+  if(t.dataset.sub){S.sub=t.dataset.sub;render(false);return}
+  if(t.dataset.m){S.month=+t.dataset.m;render();return}
+});
+document.addEventListener('input',function(ev){var e=ev.target;if(e.matches&&e.matches('[data-b]'))onInput(e)});
+document.addEventListener('change',function(ev){
+  var e=ev.target;
+  if(e.matches('[data-b]')&&e.tagName==='SELECT'){onInput(e);if(S.tab==='bulan'&&S.sub==='a')render()}
+  else if(e.id==='fileIn')addFiles(e.files);
+  else if(e.id==='jsonIn'&&e.files[0])importJson(e.files[0]);
+  else if(e.dataset&&e.dataset.sel){S.sel[e.dataset.sel]=e.checked}
+});
+document.addEventListener('toggle',function(ev){var d=ev.target;if(d.dataset&&d.dataset.open!=null)S.open[d.dataset.open]=d.open},true);
+document.addEventListener('dragover',function(ev){var d=ev.target.closest&&ev.target.closest('#drop');if(d){ev.preventDefault();d.classList.add('over')}});
+document.addEventListener('dragleave',function(ev){var d=ev.target.closest&&ev.target.closest('#drop');if(d)d.classList.remove('over')});
+document.addEventListener('drop',function(ev){var d=ev.target.closest&&ev.target.closest('#drop');if(d){ev.preventDefault();d.classList.remove('over');addFiles(ev.dataTransfer.files)}});
+// tooltip
+var tip=null,tipT=null;
+function showTip(t,x,y){tip=tip||$('#tip');tip.textContent=t;tip.classList.add('on');var w=tip.offsetWidth,h=tip.offsetHeight;tip.style.left=Math.max(8,Math.min(window.innerWidth-w-8,x+12))+'px';tip.style.top=Math.max(8,y-h-12)+'px'}
+document.addEventListener('mouseover',function(ev){var t=ev.target.closest&&ev.target.closest('[data-tip]');if(t)showTip(t.dataset.tip,ev.clientX,ev.clientY)});
+document.addEventListener('mousemove',function(ev){var t=ev.target.closest&&ev.target.closest('[data-tip]');if(t&&tip&&tip.classList.contains('on'))showTip(t.dataset.tip,ev.clientX,ev.clientY)});
+document.addEventListener('mouseout',function(ev){var t=ev.target.closest&&ev.target.closest('[data-tip]');if(t&&tip)tip.classList.remove('on')});
+document.addEventListener('touchstart',function(ev){var t=ev.target.closest&&ev.target.closest('[data-tip]');if(t&&ev.touches[0]){showTip(t.dataset.tip,ev.touches[0].clientX,ev.touches[0].clientY);clearTimeout(tipT);tipT=setTimeout(function(){tip&&tip.classList.remove('on')},2200)}},{passive:true});
+
+/* ---------- mulai ---------- */
+try{var th=localStorage.getItem('pdca26:theme');if(th)document.documentElement.setAttribute('data-theme',th)}catch(e){}
+render();
+initCaps().then(loadAll).then(function(){
+  normalize();
+  if(S.cfg){S.month=latestEval()}
+  S.loaded=true;render(false);
+}).catch(function(e){S.loaded=true;S.cfg=null;render(false);toast('Gagal memuat: '+(e&&e.message||e))});
+})();
+
+</script>
+
+</body></html>
